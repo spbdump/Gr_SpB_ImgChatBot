@@ -32,5 +32,5 @@ def get_new_messages(last_update_id):
                 file_path = get_file_path(file_id)
                 download_image(file_path)
 
-while True:
-    get_new_messages(LAST_UPDATE_ID)
+# while True:
+#     get_new_messages(LAST_UPDATE_ID)

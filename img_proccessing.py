@@ -1,7 +1,13 @@
 import cv2
 import numpy as np
+import logging
+
 import image_d
 import db_utils
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 def compare_images_sift(img1, img2):
     sift = cv2.xfeatures2d.SIFT_create()
@@ -50,7 +56,7 @@ def compare_sift_descriprtors(desc1, desc2, match_percent=0.825) -> bool:
 
 def poces_similar_sift_descriprors(query_descriptor):
     desc_list = db_utils.retrive_top_k_descriptors(query_descriptor)
-
+    
     res = []
     for desc in desc_list:
         if compare_sift_descriprtors(query_descriptor, desc) == True:
@@ -58,14 +64,9 @@ def poces_similar_sift_descriprors(query_descriptor):
 
     return res
 
-def get_image_data(path_to_img):
+def get_image_data(path_to_img) -> image_d.ImageData:
 
     img = cv2.imread(path_to_img)
-    
-    if img == None:
-        print("Error to open imge: ", path_to_img)
-        return None
-
     sift = cv2.xfeatures2d.SIFT_create()
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     kp1, desc = sift.detectAndCompute(gray, None)

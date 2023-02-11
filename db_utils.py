@@ -9,16 +9,14 @@ DB_ADDRES = os.environ.get("DB_ADDRES")
 def save_img_data(img_data_arr):
     client = MongoClient(DB_ADDRES)
 
-    if not client.test :
-        print("Error connection to DB")
-
     if DB_NAME == None:
         return
 
     db = client[DB_NAME]
     collection = db["image_data_collection"]
 
-    data_dicts = [i.__dict__ for i in img_data_arr]
+    data_dicts = [i.__dict__() for i in img_data_arr]
+
     collection.insert_many(data_dicts)
 
 
@@ -28,7 +26,7 @@ def retrive_top_k_descriptors(query_descriptor):
     client = MongoClient(DB_ADDRES)
 
     if DB_NAME == None:
-        return
+        return []
 
     db = client[DB_NAME]
     collection = db["image_data_collection"]
@@ -50,3 +48,16 @@ def retrive_top_k_descriptors(query_descriptor):
         #     top_k_images.append(image)
 
     return top_k_descriptors
+
+
+def get_addtional_data_about_image(desc):
+    client = MongoClient(DB_ADDRES)
+
+    if DB_NAME == None:
+        return
+
+    db = client[DB_NAME]
+    collection = db["image_data_collection"]
+    data = list(collection.find({"value": desc}))
+
+    return data

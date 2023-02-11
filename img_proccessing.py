@@ -1,6 +1,7 @@
 import cv2
-import numpy as np
 import logging
+import os
+import numpy as np
 
 import image_d
 import db_utils
@@ -49,7 +50,9 @@ def compare_sift_descriprtors(desc1, desc2, match_percent=0.825) -> bool:
         if m.distance < 0.75 * n.distance:
             good_matches.append([m])
 
-    if len(good_matches)/len(matches) > match_percent:
+    v_match = len(good_matches)/len(matches)
+    print("Match persets:", v_match)
+    if v_match > match_percent:
         return True
     else:
         return False
@@ -59,7 +62,7 @@ def poces_similar_sift_descriprors(query_descriptor):
     
     res = []
     for desc in desc_list:
-        if compare_sift_descriprtors(query_descriptor, desc) == True:
+        if compare_sift_descriprtors(query_descriptor, desc[0]) == True:
             res.append(desc)
 
     return res
@@ -71,4 +74,4 @@ def get_image_data(path_to_img) -> image_d.ImageData:
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     kp1, desc = sift.detectAndCompute(gray, None)
 
-    return image_d.ImageData(desc, image_d.DescriptorType.SIF)
+    return image_d.ImageData(desc, image_d.DescriptorType.SIF, img_name=os.path.basename(path_to_img))

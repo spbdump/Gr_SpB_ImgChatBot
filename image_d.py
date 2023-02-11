@@ -8,7 +8,7 @@ class DescriptorType(Enum):
     OTHER = "OTHER"
 
 class ImageData:
-    def __init__(self, descriptor, desc_type, datestamp=datetime.datetime.now(), message_id=-1):
+    def __init__(self, descriptor, desc_type, datestamp=datetime.datetime.now(), message_id=-1, img_name=""):
 
         self.descriptor = descriptor
 
@@ -18,10 +18,11 @@ class ImageData:
         self.desc_type = desc_type
         self.datestamp = datestamp
         self.message_id = message_id
+        self.img_name = img_name
 
     def __repr__(self):
         return f"ImageData(descriptor='{self.descriptor}', datestamp='{self.datestamp}', post_id='{self.message_id}')"
 
     def __dict__(self):
-        return {'descriptor': self.descriptor.tolist(), 'desc_type': str(self.desc_type), 'datestamp': self.datestamp, 'message_id': self.message_id }
+        return {'descriptor': self.descriptor.tolist(), 'desc_type': str(self.desc_type), 'datestamp': self.datestamp, 'message_id': self.message_id, 'img_name': self.img_name }
 

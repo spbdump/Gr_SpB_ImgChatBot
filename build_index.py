@@ -12,12 +12,12 @@ def get_image_files(directory: str):
 def build_index(path_to_imgs_dir: str):
 
     list_imgs = get_image_files(path_to_imgs_dir)
-    max_iter_size = 50
+    max_iter_size = 10
 
     print(list_imgs)
     curr_idx = 0
     last_idx = 0
-    while curr_idx < 100: # len(list_imgs)
+    while curr_idx < 500: # len(list_imgs)
         if curr_idx + max_iter_size < len(list_imgs):
            last_idx = curr_idx + max_iter_size 
         else:

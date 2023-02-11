@@ -34,9 +34,9 @@ def main():
     # db_utils.save_img_data([image_data, image_data2])
 
     # step 1
-    # build_index.build_index("./photos")
+    build_index.build_index("./photos")
 
-    print("db has same image: ", img_proccessing.poces_similar_sift_descriprors(image_data.descriptor) )
+    # print("db has same image: ", img_proccessing.poces_similar_sift_descriprors(image_data.descriptor) )
 
 
 

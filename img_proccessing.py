@@ -3,43 +3,15 @@ import os
 import numpy as np
 
 import image_d
-import db_utils
-import math_utils
+import HNSW_index
 
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def compare_images_sift(img1, img2):
-    sift = cv2.xfeatures2d.SIFT_create(nfeatures=1000)
+NFEATURES = 2500
 
-    gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    kp1, des1 = sift.detectAndCompute(gray1, None)
-
-    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    kp2, des2 = sift.detectAndCompute(gray2, None)
-
-    bf = cv2.BFMatcher()
-    matches = bf.knnMatch(des1, des2, k=2)
-
-    good_matches = []
-    for m, n in matches:
-        if m.distance < 0.75 * n.distance:
-            good_matches.append([m])
-
-    # DEBUG
-    # img_matches = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good_matches, None, flags=2)
-    # cv2.imshow('image', img_matches)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-    # print("lenght od good matches: ", len(good_matches), "len matches: ", len(matches))
-
-    if len(good_matches)/len(matches) > 0.9:
-        return True
-    else:
-        return False
-
-def compare_sift_descriprtors(desc1, desc2, match_percent=0.825) -> bool:
+def compare_sift_descriprtors(desc1, desc2, match_percent=0.7) -> bool:
     
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(desc1, desc2, k=2)
@@ -51,15 +23,13 @@ def compare_sift_descriprtors(desc1, desc2, match_percent=0.825) -> bool:
 
     v_match = len(good_matches)/len(matches)
 
-    print("Match persets: ", v_match,", Distanse: ", math_utils.euclidian_distance(desc1, desc2))
-
     if v_match > match_percent:
         return True
     else:
         return False
 
 def poces_similar_sift_descriprors(query_descriptor):
-    desc_list = db_utils.retrive_top_k_descriptors(query_descriptor)
+    desc_list = HNSW_index.get_neighbors_descriptors(query_descriptor)
     
     res = []
     for desc in desc_list:
@@ -68,30 +38,6 @@ def poces_similar_sift_descriprors(query_descriptor):
 
     return res
 
-def poces_similar_sift_descriprors_brootforce(query_descriptor):
-    desc_list = db_utils.retrive_all_descriptors()
-
-    logger.info("Got %d descriptors", len(desc_list))
-    res = []
-    for desc in desc_list:
-        if compare_sift_descriprtors(query_descriptor, np.array(desc["descriptor"], dtype=np.float32)) == True:
-            logger.info("Got some match")
-            res.append(desc)
-
-    return res
-
-def poces_similar_sift_descriprors_ann_index(query_descriptor):
-    desc_list = db_utils.retrive_ann_index_descriptors(query_descriptor)
-
-    logger.info("Got %d descriptors", len(desc_list))
-    # print(desc_list)
-    res = []
-    for desc in desc_list:
-        if compare_sift_descriprtors(query_descriptor, desc) == True:
-            logger.info("Got some match")
-            res.append(desc)
-
-    return res
 
 def get_image_data(path_to_img) -> image_d.ImageData:
 
@@ -100,10 +46,9 @@ def get_image_data(path_to_img) -> image_d.ImageData:
         logger.info("Can't open image: %s", path_to_img)
         return image_d.ImageData([[]], image_d.DescriptorType.SIF, img_name="")
 
-    sift = cv2.xfeatures2d.SIFT_create(nfeatures=1000)
+    sift = cv2.xfeatures2d.SIFT_create(nfeatures=NFEATURES)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     kp1, desc = sift.detectAndCompute(gray, None)
-
 
     return image_d.ImageData(desc, image_d.DescriptorType.SIF, img_name=os.path.basename(path_to_img))

@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 150
+BATCH_SIZE = 1000
 hnsw_indexies = []
 hnsw_indexies_paths = []
 
@@ -53,8 +53,9 @@ def load_hnsw_indexies():
 
 # Build the HNSW index
 def build_hnsw_index():
+    global BATCH_SIZE
 
-    batch_part_size = int(BATCH_SIZE/10)
+    batch_part_size = int(BATCH_SIZE/100)
     collection_size = db_utils.get_desc_collection_size()
     cnt_proccessed_desc = 0
     batch_idx = 0
@@ -62,17 +63,19 @@ def build_hnsw_index():
     logger.info("Count documents: %d", collection_size)
     logger.info("Populate the index with descriptors")
 
+    if collection_size < BATCH_SIZE:
+        BATCH_SIZE = collection_size
+
     while cnt_proccessed_desc < collection_size:
         batch_offset = 0
         index = nmslib.init(method='hnsw', space='l2')
         file_name = "./indexies/index_optim_btach_{b_idx}_sz_{sz}.bin".format(b_idx=batch_idx, sz=BATCH_SIZE)
 
-        descriptors = []
         while batch_offset < BATCH_SIZE:
-            descriptors += db_utils.get_desc_batch(batch_offset, batch_part_size)
+            descriptors = db_utils.get_desc_batch(batch_offset, batch_part_size)
+            index.addDataPointBatch(descriptors) # should be array(128*nfeatures, cnt_descriptors)
+            
             batch_offset += batch_part_size
-
-        index.addDataPointBatch(descriptors) # should be array(128*nfeatures, cnt_descriptors)
 
         logger.info("Index has %d descriptors", batch_offset)
         logger.info("Start building batch index")

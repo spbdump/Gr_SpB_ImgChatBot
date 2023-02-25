@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-NFEATURES = 2500
+NFEATURES = 2000
 
 def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.7) -> bool:
     

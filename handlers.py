@@ -34,11 +34,11 @@ async def receive_tits_or_cats(update: Update, context: CallbackContext) -> None
 
     if len(res) == 0:
         db_utils.save_img_data([img_data])
-        logging.info("New image was stored to database")
+        logging.info("New image was saved to database")
         return
 
     if len(res) == 1:
-        message_id = db_utils.get_addtional_data_about_image(img_data.descriptor)
+        message_id = db_utils.get_addtional_data_about_image(res[0]["_id"])
         # add link to existed post
         await update.message.reply_text(text="Предупреждение!\nYou got -rep!")
         return

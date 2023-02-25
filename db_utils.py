@@ -136,7 +136,7 @@ def save_img_data(img_data_arr):
         print("An error occurred:", e)
 
 
-def get_addtional_data_about_image(desc): #FIXIT
+def get_addtional_data_about_image(id): #FIXIT
     client = MongoClient(DB_ADDRES)
 
     if DB_NAME == None:
@@ -144,6 +144,6 @@ def get_addtional_data_about_image(desc): #FIXIT
 
     db = client[DB_NAME]
     collection = db["image_data_collection"]
-    data = list(collection.find({"value": desc}))
+    data = list(collection.find({"_id": id}))
 
     return data

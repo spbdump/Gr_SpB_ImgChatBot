@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 NFEATURES = 2500
 
-def compare_sift_descriprtors(desc1, desc2, match_percent=0.7) -> bool:
+def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.7) -> bool:
     
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(desc1, desc2, k=2)
@@ -29,13 +29,18 @@ def compare_sift_descriprtors(desc1, desc2, match_percent=0.7) -> bool:
         return False
 
 def poces_similar_sift_descriprors(query_descriptor):
+    logging.info("Start search similar inexies")
     desc_list = HNSW_index.get_neighbors_descriptors(query_descriptor)
     
+    logging.info("Match all neighbors descriptors")
     res = []
     for desc in desc_list:
-        if compare_sift_descriprtors(query_descriptor, desc[0]) == True:
+        db_desc = np.array(desc["descriptor"], dtype=np.float32)
+        if compare_sift_descriprtors(query_descriptor, db_desc) == True:
             res.append(desc)
 
+    logging.info("Done. Was found %d descriptors", len(desc_list))
+    
     return res
 
 

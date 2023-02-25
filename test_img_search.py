@@ -14,9 +14,10 @@ def main():
     query_desc = image_data.descriptor
 
     # build_db.fullfill("./photos")
+    # HNSW_index.build_hnsw_index()
     
-    # build index on each bot start
-    HNSW_index.build_hnsw_index()
+    # load index on each bot start
+    HNSW_index.load_hnsw_indexies()
 
     start = time.time()
     

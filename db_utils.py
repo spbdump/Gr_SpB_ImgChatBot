@@ -45,7 +45,7 @@ def get_desc_batch(batch_offset:int, batch_size:int, raw_data:bool = False):
     client = MongoClient(DB_ADDRES)
 
     if DB_NAME == None:
-        return
+        return []
 
     db = client[DB_NAME]
     collection = db["image_data_collection"]
@@ -56,9 +56,17 @@ def get_desc_batch(batch_offset:int, batch_size:int, raw_data:bool = False):
     if not raw_data:
         np_descriptors = []
         for desc in descriptors:
-            np_descriptors.append(np.array(desc["descriptor"], dtype=np.float32)) 
+            first_nfeatures = 1000
+            np_desc = np.array(desc["descriptor"], dtype=np.float32)[:first_nfeatures]
+
+            if np_desc.shape[0] < first_nfeatures:
+                np_desc = np.pad(np_desc, ((0,first_nfeatures - np_desc.shape[0]), (0, 0)), mode='constant', constant_values=0)
+
+            np_descriptors.append(np_desc.flatten())
 
         logger.info("Got converted descriptors data from 'image_data_collection'")
+        # np_descriptors = np.concatenate(np_descriptors, axis=1)
+        print("res desc shape is ", np.array(np_descriptors).shape)
         return np_descriptors
 
     logger.info("Got raw image data from 'image_data_collection'")
@@ -68,15 +76,18 @@ def get_desc_by_batch_indexes(indexies):
     client = MongoClient(DB_ADDRES)
 
     if DB_NAME == None:
-        return
+        return []
 
     db = client[DB_NAME]
     collection = db["image_data_collection"]
 
     descriptors = []
     for idx in indexies:
-        batch_idx = idx[0]
-        batch_indexies = idx[1]
+        batch_idx = idx
+        batch_indexies = indexies[idx]
+
+        logger.info("batch_id: %d", batch_idx) 
+        
         descriptors += list(collection.find(
             {"batch_id": batch_idx, "batch_id_in": { "$in" : batch_indexies}},
             {"descriptor": 1, "_id": 1, "img_name": 1}

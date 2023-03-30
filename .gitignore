@@ -2,7 +2,7 @@ __*
 venv
 test_images
 photos
-tmp_imgs
+tmp_photos
 new_photos
 indexies
 .env

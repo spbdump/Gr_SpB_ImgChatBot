@@ -7,12 +7,12 @@ import time
 
 def main():
 
-    if not db_utils.check_connection() :
-        return
+    db_utils.check_connection()
 
-    image_data = img_proccessing.get_image_data("./photos/photo_1628@05-11-2022_00-23-36.jpg")
+    image_data = img_proccessing.get_image_data("./photos/photo_1476@23-10-2022_17-14-18.jpg")
     query_desc = image_data.descriptor
 
+    print( query_desc.shape )
     # build_db.fullfill("./photos")
     # HNSW_index.build_hnsw_index()
     
@@ -28,7 +28,7 @@ def main():
         print(res["_id"], res["img_name"])
 
     end = time.time()
-    print("time to find match : %d sec", end - start)
+    print("time to find match: sec", end - start)
 
 
 

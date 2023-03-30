@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-NFEATURES = 2000
+NFEATURES = 500
 
 def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.7) -> bool:
     
@@ -18,7 +18,7 @@ def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percen
 
     good_matches = []
     for m, n in matches:
-        if m.distance < 0.7 * n.distance:
+        if m.distance < 0.6 * n.distance:
             good_matches.append([m])
 
     v_match = len(good_matches)/len(matches)

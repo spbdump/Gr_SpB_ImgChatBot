@@ -13,26 +13,27 @@ BATCH_SIZE = 1000
 hnsw_indexies = []
 hnsw_indexies_paths = []
 
-def get_neighbors_descriptors(desc: np.ndarray, k:int =5):
 
-    query_desc = np.array(desc[:500], dtype=np.float32) # take only part of desc to improve performance
+def get_neighbors_descriptors(desc: np.ndarray, k:int =100):
+
+    query_desc = np.array(desc[:300], dtype=np.float32) # take only part of desc to improve performance
     neighbors_map = {}
 
     logger.info("Search neighbors descriptors in Index")
     for idx, index in enumerate(hnsw_indexies):
-        neighbors_data = index.knnQueryBatch(query_desc, k=k) # reurn tuple of indexies and distances
-        indexies_set = set({})
-        for indexies, distances in neighbors_data:
-            indexies_set = indexies_set.union(indexies)
-
+        neighbors_data = index.knnQuery(query_desc.reshape(-1), k=k) # reurn tuple of indexies and distances
+        indexies_set = set(neighbors_data[0])
         neighbors_map[idx] = np.array(list(indexies_set), dtype=np.int32).tolist() # save indexies of descriptors by number of hnsw index batch
 
     logger.info("Reciving neighbor indexies from database")
+    print(neighbors_map)
     descriptors_data = db_utils.get_desc_by_batch_indexes(neighbors_map)
     logger.info("Recive %d indexies from database", len(descriptors_data))
 
     return descriptors_data
-    
+
+
+
 def load_hnsw_indexies():
     if len(hnsw_indexies) != 0:
         logger.info("Load indexies already loaded!")
@@ -50,6 +51,8 @@ def load_hnsw_indexies():
         hnsw_indexies.append(index)
 
     logger.info("Indexies was loaded: %d", len(hnsw_indexies))
+
+
 
 # Build the HNSW index
 def build_hnsw_index():
@@ -71,10 +74,20 @@ def build_hnsw_index():
         index = nmslib.init(method='hnsw', space='l2')
         file_name = "./indexies/index_optim_btach_{b_idx}_sz_{sz}.bin".format(b_idx=batch_idx, sz=BATCH_SIZE)
 
+        if os.path.isfile(file_name):
+            batch_idx += 1
+            cnt_proccessed_desc += BATCH_SIZE
+            logger.info("Skip build Index. Index with name %s already exist", file_name)
+            continue
+
         while batch_offset < BATCH_SIZE:
-            descriptors = db_utils.get_desc_batch(batch_offset, batch_part_size)
-            index.addDataPointBatch(descriptors) # should be array(128*nfeatures, cnt_descriptors)
+            descriptors = db_utils.get_desc_batch(cnt_proccessed_desc + batch_offset, batch_part_size)
             
+            if len(descriptors) == 0:
+                break
+            
+            ids = list( range( batch_offset, batch_offset + batch_part_size + 1 ) )
+            index.addDataPointBatch(descriptors, ids) # should be array(128, nfeatures*cnt_descriptors)
             batch_offset += batch_part_size
 
         logger.info("Index has %d descriptors", batch_offset)
@@ -89,7 +102,7 @@ def build_hnsw_index():
         index.saveIndex(file_name, save_data=False)
 
         batch_idx += 1
-        cnt_proccessed_desc += batch_offset
+        cnt_proccessed_desc += BATCH_SIZE
 
         logger.info("Buildiing batch index Done")
 

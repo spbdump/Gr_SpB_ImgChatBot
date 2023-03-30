@@ -12,19 +12,19 @@ logger = logging.getLogger(__name__)
 
 DB_NAME = os.environ.get("DB_NAME")
 DB_ADDRES = os.environ.get("DB_ADDRES")
-
+NFEATURES = 500
 
 def check_connection() -> bool:
     client = MongoClient(DB_ADDRES, serverSelectionTimeoutMS=10, connectTimeoutMS=20000)
 
     try:
         info = client.server_info() # Forces a call.
-        print(info)
+        logger.error(info)
 
         return True
         
     except ServerSelectionTimeoutError:
-        print("server is down.")
+        logger.error("server is down.")
 
     return False
 
@@ -33,6 +33,7 @@ def get_desc_collection_size() -> int:
     client = MongoClient(DB_ADDRES)
 
     if DB_NAME == None:
+        logger.error("DB_NAME is not defined")
         return 0
 
     db = client[DB_NAME]
@@ -45,6 +46,7 @@ def get_desc_batch(batch_offset:int, batch_size:int, raw_data:bool = False):
     client = MongoClient(DB_ADDRES)
 
     if DB_NAME == None:
+        logger.error("DB_NAME is not defined")
         return []
 
     db = client[DB_NAME]
@@ -53,20 +55,24 @@ def get_desc_batch(batch_offset:int, batch_size:int, raw_data:bool = False):
     descriptors = list(collection.find({},{"descriptor": 1, "_id": 1, "img_name": 1}).limit(batch_size).skip(batch_offset))
     logger.info("Got %d descriptors from 'image_data_collection'", len(descriptors))
 
+    if len(descriptors) == 0:
+        return []
+
+    first_nfeatures = NFEATURES
     if not raw_data:
-        np_descriptors = []
+        np_descriptors = np.empty((0, first_nfeatures*128))
         for desc in descriptors:
-            first_nfeatures = 1000
-            np_desc = np.array(desc["descriptor"], dtype=np.float32)[:first_nfeatures]
+            np_desc_nf = np.array(desc["descriptor"], dtype=np.float32)[:first_nfeatures]
+            padded_matrix = np_desc_nf
 
-            if np_desc.shape[0] < first_nfeatures:
-                np_desc = np.pad(np_desc, ((0,first_nfeatures - np_desc.shape[0]), (0, 0)), mode='constant', constant_values=0)
+            if np_desc_nf.shape[0] < first_nfeatures:
+                n_rows = first_nfeatures - np_desc_nf.shape[0]
+                padded_matrix = np.pad(np_desc_nf, pad_width=((0, n_rows), (0, 0)), mode='constant')
 
-            np_descriptors.append(np_desc.flatten())
+            np_desc = padded_matrix.reshape(1, -1)
+            np_descriptors = np.concatenate((np_descriptors, np_desc), axis=0)
 
         logger.info("Got converted descriptors data from 'image_data_collection'")
-        # np_descriptors = np.concatenate(np_descriptors, axis=1)
-        print("res desc shape is ", np.array(np_descriptors).shape)
         return np_descriptors
 
     logger.info("Got raw image data from 'image_data_collection'")
@@ -76,12 +82,16 @@ def get_desc_by_batch_indexes(indexies):
     client = MongoClient(DB_ADDRES)
 
     if DB_NAME == None:
+        logger.error("DB_NAME is not defined")
         return []
 
     db = client[DB_NAME]
     collection = db["image_data_collection"]
 
     descriptors = []
+
+    logger.info("size of indexies: %d", len(indexies))
+
     for idx in indexies:
         batch_idx = idx
         batch_indexies = indexies[idx]

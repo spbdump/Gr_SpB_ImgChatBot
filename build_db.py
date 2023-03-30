@@ -19,9 +19,11 @@ def get_image_files(directory: str):
 def fullfill(path_to_imgs_dir: str):
 
     db_utils.drop_collection()
-    
+
     list_imgs = get_image_files(path_to_imgs_dir)
-    max_iter_size = 300
+    max_iter_size = HNSW_index.BATCH_SIZE # should be same with size of index
+
+    # if max_iter_size too big may be need divide external loop !!! because take a lot of RAM
 
     curr_idx = 0
     last_idx = 0
@@ -44,14 +46,21 @@ def fullfill(path_to_imgs_dir: str):
             imgs_data.append(img_data)
             curr_batch_idx_in += 1
 
+            if len(imgs_data) > 300:
+                logger.info("%d images was proccessed", len(imgs_data))
+                db_utils.save_img_data(imgs_data)
+                logger.info("Images data was saved to db")
+                imgs_data = []
+
         logger.info("%d images was proccessed", len(imgs_data))
         db_utils.save_img_data(imgs_data)
         logger.info("Images data was saved to db")
 
+
         curr_idx += max_iter_size
 
         if curr_batch_idx_in == HNSW_index.BATCH_SIZE:
+            logger.info("Batch fullfilled. Current id: %d", curr_batch_idx)
             curr_batch_idx += 1
             curr_batch_idx_in = 0
-            logger.info("Batch fullfilled. Current id: %d", curr_batch_idx)
 

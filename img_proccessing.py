@@ -3,8 +3,7 @@ import os
 import numpy as np
 
 import image_d
-import db_utils
-import math_utils
+import HNSW_index
 
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -41,14 +40,14 @@ def compare_images_sift(img1, img2):
     else:
         return False
 
-def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.825) -> bool:
+def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.7) -> bool:
     
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(desc1, desc2, k=2)
 
     good_matches = []
     for m, n in matches:
-        if m.distance < 0.7 * n.distance:
+        if m.distance < 0.6 * n.distance:
             good_matches.append([m])
 
     v_match = len(good_matches)/len(matches)
@@ -61,11 +60,14 @@ def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percen
         return False
 
 def poces_similar_sift_descriprors(query_descriptor):
-    desc_list = db_utils.retrive_top_k_descriptors(query_descriptor)
+    logging.info("Start search similar inexies")
+    desc_list = HNSW_index.get_neighbors_descriptors(query_descriptor)
     
+    logging.info("Match all neighbors descriptors")
     res = []
     for desc in desc_list:
-        if compare_sift_descriprtors(query_descriptor, desc[0]) == True:
+        db_desc = np.array(desc["descriptor"], dtype=np.float32)
+        if compare_sift_descriprtors(query_descriptor, db_desc) == True:
             res.append(desc)
 
     return res
@@ -106,6 +108,5 @@ def get_image_data(path_to_img) -> image_d.ImageData:
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     kp1, desc = sift.detectAndCompute(gray, None)
-
 
     return image_d.ImageData(desc, image_d.DescriptorType.SIF, img_name=os.path.basename(path_to_img))

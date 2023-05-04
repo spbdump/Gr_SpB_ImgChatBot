@@ -165,7 +165,7 @@ def poces_similar_sift_descriprors_ann_index_TEST():
 
     print("size res:", len(res_arr))
     for res in res_arr:
-        print(res["_id"], res["img_name"])
+        print(res[1])
 
     end = time.time()
     logger.info("time takes to find match : %d", end - start)

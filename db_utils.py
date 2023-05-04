@@ -1,13 +1,11 @@
-import numpy as np
-
-from pymongo import MongoClient
 import os
-import time
-import sys
+import numpy as np
+from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError
 
-import math_utils
-import annoy
-import bson
+
+
+NFEATURES=5000
 
 # Enable logging
 import logging
@@ -16,6 +14,20 @@ logger = logging.getLogger(__name__)
 
 DB_NAME = os.environ.get("DB_NAME")
 DB_ADDRES = os.environ.get("DB_ADDRES")
+
+def check_connection() -> bool:
+    client = MongoClient(DB_ADDRES, serverSelectionTimeoutMS=10, connectTimeoutMS=20000)
+
+    try:
+        info = client.server_info() # Forces a call.
+        print(info)
+
+        return True
+        
+    except ServerSelectionTimeoutError:
+        print("server is down.")
+
+    return False
 
 def drop_collection():
     client = MongoClient(DB_ADDRES)
@@ -102,125 +114,6 @@ def retrive_all_descriptors():
     logger.info("collection size: %d", collection_size)
     descriptors = list(collection.find({},{"descriptor": 1, "_id": 1, "img_name": 1}))
     return descriptors
-
-def retrive_top_k_descriptors(query_descriptor):
-    max_value_of_k = 30
-
-    client = MongoClient(DB_ADDRES)
-
-    if DB_NAME == None:
-        return []
-
-    db = client[DB_NAME]
-    collection = db["image_data_collection"]
-
-    max_documents = 150 # should be MUCH MORE around 500
-    offset = max_documents # take smth around 16%
-    curr_offset = 0
-    collection_size = collection.count_documents({})
-
-    logger.info("collection size: %d", collection_size)
-    
-    top_k_descriptors = []
-
-    logger.info("collection size: %d", collection_size)
-
-    while curr_offset < collection_size:
-
-        start = time.time()
-        descriptors = list(collection.find({},{"descriptor": 1, "_id": 1}).limit(max_documents).skip(offset))
-        end = time.time()
-
-        curr_offset += offset
-
-        logger.info("currtent offset: %d", curr_offset)
-        logger.info("time takes on request is : %d", end - start)
-
-        print("Size of descs: ", len(descriptors))
-        
-        similarity_scores = []
-        for d in descriptors:
-            descriptor = np.array(d["descriptor"], dtype=np.float32)
-            
-            similarity_score = math_utils.euclidian_distance(query_descriptor, descriptor)
-            similarity_scores.append((descriptor, similarity_score, d["_id"]))
-
-        similarity_scores.sort(key=lambda x: x[1])
-        
-        top_k_descriptors = top_k_descriptors + similarity_scores[:max_value_of_k]
-
-
-    return top_k_descriptors
-
-def retrive_ann_index_descriptors(query_descriptor):
-    client = MongoClient(DB_ADDRES)
-
-    if DB_NAME == None:
-        return []
-
-    db = client[DB_NAME]
-    collection = db["image_data_collection"]
-
-    max_documents = 150 # should be MUCH MORE around 500
-    offset = max_documents # take smth around 16%
-    curr_offset = 0
-    collection_size = collection.count_documents({})
-
-    logger.info("collection size: %d", collection_size)
-    
-    res_descriptors = []
-
-    logger.info("collection size: %d", collection_size)
-
-    while curr_offset < collection_size:
-
-        start = time.time()
-        descriptors = list(collection.find({},{"descriptor": 1, "_id": 1}).limit(max_documents).skip(offset))
-        end = time.time()
-        curr_offset += offset
-
-        logger.info("currtent offset: %d", curr_offset)
-        logger.info("time takes on request is : %d", end - start)
-
-        # Build the index
-        descriptor_size = 128
-        nfeatures = 1000
-        f = descriptor_size*nfeatures
-        index = annoy.AnnoyIndex(f, metric='angular')
-        for i, desc in enumerate(descriptors):
-            d = np.array(desc["descriptor"], dtype=np.float32)
-            print(d.shape)
-            gap = 1000 - d.shape[0]
-
-            if gap > 0:
-                padding = np.zeros((gap, descriptor_size), dtype=np.float32)
-                d = np.concatenate((d, padding))
-            elif gap < 0:
-                d = d[:gap, :]
-
-            print(d.shape)
-            index.add_item(i, d.reshape(-1).tolist())
-
-        index.build(50)
-
-
-        gap = 1000 - query_descriptor.shape[0]
-
-        if gap > 0:
-            padding = np.zeros((gap, descriptor_size), dtype=np.float32)
-            query_descriptor = np.concatenate((query_descriptor, padding))
-        elif gap < 0:
-            query_descriptor = query_descriptor[:gap, :]
-
-        # Query the index to find the approximate nearest neighbors
-        descriptors_idx = index.get_nns_by_vector(query_descriptor.reshape(-1).tolist(), 20, search_k=-1, include_distances=False)
-        for idx in descriptors_idx:
-            res_descriptors.append(np.array(descriptors[idx]["descriptor"], dtype=np.float32))
-
-    return res_descriptors
-
-
-
 
 
 def get_addtional_data_about_image(desc): #FIXIT

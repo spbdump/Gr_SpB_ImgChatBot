@@ -10,8 +10,10 @@ import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+NFEATURES = 5000
+
 def compare_images_sift(img1, img2):
-    sift = cv2.xfeatures2d.SIFT_create(nfeatures=1000)
+    sift = cv2.xfeatures2d.SIFT_create(nfeatures=NFEATURES)
 
     gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
     kp1, des1 = sift.detectAndCompute(gray1, None)
@@ -39,7 +41,7 @@ def compare_images_sift(img1, img2):
     else:
         return False
 
-def compare_sift_descriprtors(desc1, desc2, match_percent=0.825) -> bool:
+def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.825) -> bool:
     
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(desc1, desc2, k=2)
@@ -51,7 +53,7 @@ def compare_sift_descriprtors(desc1, desc2, match_percent=0.825) -> bool:
 
     v_match = len(good_matches)/len(matches)
 
-    print("Match persets: ", v_match,", Distanse: ", math_utils.euclidian_distance(desc1, desc2))
+    # print("Match persets: ", v_match,", Distanse: ", math_utils.euclidian_distance(desc1, desc2))
 
     if v_match > match_percent:
         return True
@@ -81,13 +83,13 @@ def poces_similar_sift_descriprors_brootforce(query_descriptor):
     return res
 
 def poces_similar_sift_descriprors_ann_index(query_descriptor):
-    desc_list = db_utils.retrive_ann_index_descriptors(query_descriptor)
+    desc_list = db_utils.retrive_ann_index_descriptors_nms(query_descriptor)
 
     logger.info("Got %d descriptors", len(desc_list))
     # print(desc_list)
     res = []
     for desc in desc_list:
-        if compare_sift_descriprtors(query_descriptor, desc) == True:
+        if compare_sift_descriprtors(query_descriptor, desc[0]) == True:
             logger.info("Got some match")
             res.append(desc)
 
@@ -100,7 +102,7 @@ def get_image_data(path_to_img) -> image_d.ImageData:
         logger.info("Can't open image: %s", path_to_img)
         return image_d.ImageData([[]], image_d.DescriptorType.SIF, img_name="")
 
-    sift = cv2.xfeatures2d.SIFT_create(nfeatures=1000)
+    sift = cv2.xfeatures2d.SIFT_create(nfeatures=NFEATURES)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     kp1, desc = sift.detectAndCompute(gray, None)

@@ -30,7 +30,7 @@ def compare_images_sift_mongodb(img1):
     db = client["image_db"]
     collection = db["descriptors"]
 
-    sift = cv2.xfeatures2d.SIFT_create(nfeatures=NFEATURES)
+    sift = cv2.SIFT_create(nfeatures=NFEATURES)
 
     index = annoy.AnnoyIndex(128, 'angular')
 

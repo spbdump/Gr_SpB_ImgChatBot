@@ -1,5 +1,5 @@
-__*
-venv
+__pycache__
+.venv
 test_images
 photos
 tmp_photos
@@ -7,4 +7,4 @@ new_photos
 indexies
 .env
 *src_imgs
-./tests/descriptors
+descriptors

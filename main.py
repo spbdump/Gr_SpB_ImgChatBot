@@ -1,7 +1,6 @@
 import tg_chat_utils
 
 
-from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,

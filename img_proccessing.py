@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 NFEATURES = 1000
 
 def compare_images_sift(img1, img2):
-    sift = cv2.xfeatures2d.SIFT_create(nfeatures=NFEATURES)
+    sift = cv2.SIFT_create(nfeatures=NFEATURES)
 
     gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
     kp1, des1 = sift.detectAndCompute(gray1, None)
@@ -104,7 +104,7 @@ def get_image_data(path_to_img) -> image_d.ImageData:
         logger.info("Can't open image: %s", path_to_img)
         return image_d.ImageData([[]], image_d.DescriptorType.SIF, img_name="")
 
-    sift = cv2.xfeatures2d.SIFT_create(nfeatures=NFEATURES)
+    sift = cv2.SIFT_create(nfeatures=NFEATURES)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     kp1, desc = sift.detectAndCompute(gray, None)

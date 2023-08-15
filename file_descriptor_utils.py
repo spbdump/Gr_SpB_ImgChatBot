@@ -101,13 +101,11 @@ def get_image_files(directory: str):
     return image_files
 
 
-def fullfill_desc_file(path_to_imgs_dir: str, desc_file: str):
-
+def fullfill_desc_file(path_to_imgs_dir: str, desc_file: str, chunk_size:int):
 
     list_imgs = get_image_files(path_to_imgs_dir)
-    max_iter_size = HNSW_index.BATCH_SIZE # should be same with size of index
 
-    # if max_iter_size too big may be need divide external loop !!! because take a lot of RAM
+    # if chunk_size too big may be need divide external loop !!! because take a lot of RAM
 
     curr_idx = 0
     last_idx = 0
@@ -117,18 +115,18 @@ def fullfill_desc_file(path_to_imgs_dir: str, desc_file: str):
     curr_batch_idx_in = 0
 
     while curr_idx < len(list_imgs):
-        if curr_idx + max_iter_size < len(list_imgs):
-           last_idx = curr_idx + max_iter_size 
+        if curr_idx + chunk_size < len(list_imgs):
+           last_idx = curr_idx + chunk_size 
         else:
             last_idx = len(list_imgs) - 1
 
         imgs_data = []
         for img_path in list_imgs[curr_idx:last_idx]:
             img_data = img_proccessing.get_image_data(path_to_imgs_dir + '/' + img_path)
-            img_data.batch_id = curr_batch_idx
-            img_data.batch_id_in = curr_batch_idx_in
+            # img_data.batch_id = curr_batch_idx
+            # img_data.batch_id_in = curr_batch_idx_in
             imgs_data.append(img_data)
-            curr_batch_idx_in += 1
+            # curr_batch_idx_in += 1
 
             if len(imgs_data) > 300:
                 append_array_with_same_width(desc_file, imgs_data)
@@ -136,13 +134,12 @@ def fullfill_desc_file(path_to_imgs_dir: str, desc_file: str):
 
         append_array_with_same_width(desc_file, imgs_data)
 
+        curr_idx += chunk_size
 
-        curr_idx += max_iter_size
-
-        if curr_batch_idx_in == HNSW_index.BATCH_SIZE:
-            logger.info("Batch fullfilled. Current id: %d", curr_batch_idx)
-            curr_batch_idx += 1
-            curr_batch_idx_in = 0
+        # if curr_batch_idx_in == HNSW_index.BATCH_SIZE:
+        #     logger.info("Batch fullfilled. Current id: %d", curr_batch_idx)
+        #     curr_batch_idx += 1
+        #     curr_batch_idx_in = 0
 
 def read_specific_rows_from_file(file_path, row_indices, chunk_size=10000):
     """

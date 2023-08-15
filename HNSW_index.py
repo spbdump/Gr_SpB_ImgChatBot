@@ -34,14 +34,14 @@ def get_neighbors_descriptors(desc: np.ndarray, k:int =100):
 
 
 
-def load_hnsw_indexies():
+def load_hnsw_indexies(dir_prefix=""):
     if len(hnsw_indexies) != 0:
         logger.info("Load indexies already loaded!")
         return
-
-    for filename in os.listdir('./indexies'):
+    path = dir_prefix + './indexies'
+    for filename in os.listdir(path):
         if filename.endswith(".bin"):
-            hnsw_indexies_paths.append('./indexies/' + filename)
+            hnsw_indexies_paths.append(path + filename)
 
     for path in hnsw_indexies_paths:
         index = nmslib.init(method='hnsw', space='l2')
@@ -53,6 +53,14 @@ def load_hnsw_indexies():
     logger.info("Indexies was loaded: %d", len(hnsw_indexies))
 
 
+def load_index(path):
+    index = nmslib.init(method='hnsw', space='l2')
+
+    logger.info("Load index %s", path)
+    index.loadIndex(path)
+    logger.info("Indexies was loaded: %d", len(hnsw_indexies))
+
+    return index
 
 # Build the HNSW index
 def build_hnsw_index():
@@ -110,3 +118,67 @@ def build_hnsw_index():
     logger.info("Buildiing index - Done")
     logger.info("%d HNSW indexies was builted!", len(hnsw_indexies))
 
+def add_item_to_index(descriptors, ids, i_index):
+    index = hnsw_indexies[i_index]
+    # descriptors = db_utils.get_desc_batch(cnt_proccessed_desc + batch_offset, batch_part_size)
+    # ids = list( range( batch_offset, batch_offset + batch_part_size + 1 ) )
+    index.addDataPointBatch(descriptors, ids)
+
+
+## new build code
+
+def build_index_from_exist(path_to_indexies, collection_size):
+    index_max_size = 10000
+    batch_part_size = 200
+    cnt_proccessed_desc = 0
+    batch_idx = 0
+
+    logger.info("Count documents: %d", collection_size)
+    logger.info("Populate the index with descriptors")
+
+    if collection_size > index_max_size:
+        logger.error("Input data too big")
+        return
+
+    batch_offset = 0
+    index = nmslib.init(method='hnsw', space='l2')
+    file_name = "{prefix_path}/indexies/index_optim_{b_idx}_maxsz_{sz}.bin".format(prefix_path=path_to_indexies, b_idx=batch_idx, sz=index_max_size)
+
+    while batch_offset < collection_size:
+        descriptors = db_utils.get_desc_batch(cnt_proccessed_desc + batch_offset, batch_part_size)
+
+        if len(descriptors) == 0:
+            break
+
+        ids = list( range( batch_offset, batch_offset + batch_part_size + 1 ) )
+        index.addDataPointBatch(descriptors, ids) # should be array(128, nfeatures*cnt_descriptors)
+
+    logger.info("Index has %d descriptors", batch_offset)
+    logger.info("Start building batch index")
+    index.createIndex(print_progress=True)
+
+    # Save a meta index, but without data!
+    logger.info("Save index to %s", file_name)
+    index.saveIndex(file_name, save_data=False)
+
+    logger.info("Buildiing index - Done")
+    logger.info("%d HNSW indexies was builted!", len(hnsw_indexies))
+
+    return index
+
+def get_neighbors_desc_indexies(index, q_desc: np.ndarray, k:int =100):
+
+    query_desc = np.array(q_desc[:300], dtype=np.float32) # take only part of desc to improve performance
+    neighbors_map = {}
+
+    logger.info("Search neighbors descriptors in Index")
+    neighbors_data = index.knnQuery(query_desc.reshape(-1), k=k) # reurn tuple of indexies and distances
+    
+    # indexies_set = set(neighbors_data[0])
+    # save indexies of descriptors by number of hnsw index batch
+    # neighbors_map[idx] = np.array(list(indexies_set), dtype=np.int32).tolist()
+
+    logger.info("Reciving neighbor indexies from database")
+    # print(neighbors_map)
+
+    return neighbors_data[0]

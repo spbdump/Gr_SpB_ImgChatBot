@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-NFEATURES = 5000
+NFEATURES = 1000
 
 def compare_images_sift(img1, img2):
     sift = cv2.xfeatures2d.SIFT_create(nfeatures=NFEATURES)
@@ -40,14 +40,14 @@ def compare_images_sift(img1, img2):
     else:
         return False
 
-def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.7) -> bool:
+def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.85) -> bool:
     
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(desc1, desc2, k=2)
 
     good_matches = []
     for m, n in matches:
-        if m.distance < 0.6 * n.distance:
+        if m.distance < match_percent * n.distance:
             good_matches.append([m])
 
     v_match = len(good_matches)/len(matches)

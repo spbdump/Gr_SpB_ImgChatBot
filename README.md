@@ -10,3 +10,8 @@ Store in db -
  $Env:BOT_TOKEN = 'TOKEN' - for powershell
 
  to start tests : python -m pytest tests/
+
+git clone --recursive https://github.com/skvark/opencv-python.git
+cd opencv-python
+export CMAKE_ARGS="-DOPENCV_ENABLE_NONFREE=ON"
+python setup.py bdist_wheel

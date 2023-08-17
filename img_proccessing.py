@@ -41,7 +41,6 @@ def compare_images_sift(img1, img2):
         return False
 
 def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.85) -> bool:
-    
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(desc1, desc2, k=2)
 
@@ -99,14 +98,12 @@ def poces_similar_sift_descriprors_ann_index(query_descriptor):
 
 def get_image_data(path_to_img) -> image_d.ImageData:
 
-    img = cv2.imread(path_to_img)
+    img = cv2.imread(path_to_img, cv2.COLOR_BGR2GRAY)
     if img is None:
         logger.info("Can't open image: %s", path_to_img)
         return image_d.ImageData([[]], image_d.DescriptorType.SIF, img_name="")
 
-    sift = cv2.SIFT_create(nfeatures=NFEATURES)
-
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    kp1, desc = sift.detectAndCompute(gray, None)
+    sift = cv2.SIFT_create(nfeatures=NFEATURES, contrastThreshold=0.04, edgeThreshold=10)
+    kp1, desc = sift.detectAndCompute(img, None)
 
     return image_d.ImageData(desc, image_d.DescriptorType.SIF, img_name=os.path.basename(path_to_img))

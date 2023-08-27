@@ -4,15 +4,12 @@ import tg_chat_utils
 from telegram.ext import (
     Application,
     CommandHandler,
-    ContextTypes,
-    ConversationHandler,
     MessageHandler,
     filters,
 )
 
 import commands
 import handlers
-import HNSW_index
 
 import logging
 
@@ -23,11 +20,10 @@ def main():
 
     app = Application.builder().token(tg_chat_utils.BOT_TOKEN).build()
 
-    # load index on each bot start
-    HNSW_index.load_hnsw_indexies()
+    int_constants()
 
     app.add_handler(CommandHandler("tits", commands.tits))
-    app.add_handler(MessageHandler(filters.PHOTO, handlers.receive_tits_or_cats))
+    app.add_handler(MessageHandler(filters.PHOTO, handlers.receive_tits_or_cats_v2))
 
     app.run_polling()
 

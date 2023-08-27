@@ -1,7 +1,11 @@
 import numpy as np
 import img_proccessing
 
+import json
+import re
 import os
+
+from sqlight_storage import store_img_data
 
 # Enable logging
 import logging
@@ -26,31 +30,38 @@ def write_array_to_file_by_chunks(array, filename, chunk_size):
             chunk.tofile(file)
 
 
-def read_array_from_file_by_chunks(filename: str, chunk_size: int, nfeatures=1, dtype=np.float32):
+def read_array_from_file_by_chunks(filename: str, chunk_size: int, cnt_chunks: int, nfeatures: int, offset: int = 0, dtype=np.float32):
     """
     Reads a NumPy array from a file in chunks.
     
     Parameters:
     - filename: Name of the file to read from.
     - chunk_size: Size of each chunk to be read.
-    - dtype: Data type of the array.
+    - cnt_chunks: Total number of chunks to read.
     - nfeatures: Number of features in each chunk.
+    - offset: Offset in rows to start reading from (default is 0).
+    - dtype: Data type of the array.
     
     Yields:
     - Chunks of the NumPy array read from the file.
     """
-    desc_lenght = 128
-    chunk_width = desc_lenght * nfeatures
+    desc_length = 128
+    chunk_width = desc_length * nfeatures
     total_chunk_elements = chunk_size * chunk_width
+    total_elements_to_skip = offset * chunk_width
 
     with open(filename, 'rb') as file:
-        while True:
+        element_size = np.dtype(dtype).itemsize
+        bytes_to_skip = total_elements_to_skip * element_size
+        file.seek(bytes_to_skip, 0)
+
+        for _ in range(cnt_chunks):
             chunk = np.fromfile(file, dtype=dtype, count=total_chunk_elements)
 
             if chunk.size == 0:
                 break
             elif chunk.size != total_chunk_elements:
-                last_chunk_size = int( chunk.size / chunk_width )
+                last_chunk_size = int(chunk.size / chunk_width)
                 chunk = chunk.reshape(last_chunk_size, chunk_width)
             else:
                 chunk = chunk.reshape(chunk_size, chunk_width)
@@ -113,10 +124,21 @@ def get_image_files(directory: str):
     return image_files
 
 
-def fullfill_desc_file(path_to_imgs_dir: str, desc_file: str, 
-                       max_imgs_cnt:int, chunk_size:int,
-                       path_to_imgs_data="./descriptors/imgs_data.txt"):
+def extract_image_id(img_name):
+    # Extract the image ID using regular expression
+    match = re.search(r'photo_(\d+)', img_name)
+    if match:
+        image_id = int(match.group(1))
+        return image_id
+    else:
+        return None
 
+def fullfill_desc_file(path_to_dir: str, desc_file: str,
+                       first_nfeatures: int,
+                       max_imgs_cnt:int, chunk_size:int):
+
+    path_to_db = path_to_dir + '/kv_storage.sqlite'
+    path_to_imgs_dir = path_to_dir + 'photos/'
     list_imgs = get_image_files(path_to_imgs_dir)
     if max_imgs_cnt > 0 and max_imgs_cnt < len(list_imgs) :
         list_imgs = list_imgs[:max_imgs_cnt]
@@ -125,11 +147,18 @@ def fullfill_desc_file(path_to_imgs_dir: str, desc_file: str,
     # write_images_list_to_file(path_to_imgs_data, list_imgs)
 
     # if chunk_size too big may be need divide external loop !!! because take a lot of RAM
-    first_nfeatures = 1000
+    indexed_images = 0
     bad_img_counter = 0
     curr_idx = 0
     last_idx = 0
     logger.info("Proccessing %d images", len(list_imgs))
+
+    txt_bad_data = open(path_to_dir+'/bad_images_data.txt', 'a')
+
+    with open( path_to_dir+'parsed_data.json', 'r') as json_file:
+        data = json.load(json_file)
+    # Create a mapping between img_name and t_msg_id
+    img_name_to_id_map = {entry['img_name']: entry['t_msg_id'] for entry in data}
 
     while curr_idx < len(list_imgs):
         if curr_idx + chunk_size < len(list_imgs):
@@ -137,27 +166,49 @@ def fullfill_desc_file(path_to_imgs_dir: str, desc_file: str,
         else:
             last_idx = len(list_imgs)
 
+        imgs_kv_data = {}
         imgs_data = np.array([], dtype=np.float32).reshape(0, 128*first_nfeatures)
         for img_path in list_imgs[curr_idx:last_idx]:
-            img_data = img_proccessing.get_image_data(path_to_imgs_dir + '/' + img_path)
+            img_data = img_proccessing.get_image_data(path_to_imgs_dir + img_path, first_nfeatures)
 
             if img_data.descriptor.shape[0] < first_nfeatures:
+                #debug
+                txt_bad_data.write(f'Bad image feature detection: {img_path}' + '\n')
+
                 logger.info("Bad image feature detection: %s", img_path)
                 logger.info("descriptor features len: %s", img_data.descriptor.shape[0])
                 bad_img_counter = bad_img_counter + 1
                 continue
+            
+            img_id = extract_image_id(img_path)
+            t_msg_id = img_name_to_id_map.get(img_path, None)
+            index_id = 0
+
+            #debug
+            if t_msg_id == None:
+                txt_bad_data.write(f'Bad telegram message id: {img_path}' + '\n')
+                logger.info("Can't find telegram message id: %s", img_path)
+                continue
+
+            imgs_kv_data[img_id] = {"t_msg_id": t_msg_id, "img_name": img_path, "index_id": index_id}
 
             desc = img_data.descriptor[:first_nfeatures].reshape(1,-1)
             imgs_data = np.vstack((imgs_data, desc), dtype=np.float32)
+            indexed_images = indexed_images + 1
 
         append_array_with_same_width(desc_file, imgs_data)
-        np.savetxt("./descriptors/test_descriptors.txt", imgs_data, fmt="%.2f")
+        store_img_data(path_to_db, imgs_kv_data)
+
+        # debug
+        # np.savetxt("./descriptors/test_descriptors.txt", imgs_data, fmt="%.2f")
 
         curr_idx += chunk_size
 
     logger.info("Batch fullfilled. Processed %d images", curr_idx)
     logger.info("Bad images %d", bad_img_counter)
     logger.info("Index has %.2f%% of banch images", float(100.0 - (bad_img_counter*100)/len(list_imgs)) )
+
+    return indexed_images
 
 
 def read_specific_rows_from_file(file_path : str, row_indices, num_columns:int, chunk_size=10000, dtype=np.float32):
@@ -175,6 +226,8 @@ def read_specific_rows_from_file(file_path : str, row_indices, num_columns:int, 
     - NumPy array containing the specified rows.
     """
     result = []
+    mapped_indices = []
+
     with open(file_path, 'rb') as file:
         for start_idx in range(0, len(row_indices), chunk_size):
             end_idx = min(start_idx + chunk_size, len(row_indices))
@@ -183,8 +236,11 @@ def read_specific_rows_from_file(file_path : str, row_indices, num_columns:int, 
             # Create a memory-mapped array for the chunk
             mmap_array = np.memmap(file, dtype=dtype, mode='r', shape=(len(chunk_indices), num_columns))
             
+            # Append the chunk indices to the list of mapped indices
+            mapped_indices.extend(chunk_indices)
+
             # Retrieve the rows using the indices
             chunk = mmap_array
             result.extend(chunk)
             
-    return np.array(result, dtype=dtype)
+    return np.array(mapped_indices), np.array(result, dtype=dtype)

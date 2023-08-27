@@ -1,4 +1,5 @@
 {
     "python.analysis.typeCheckingMode": "basic",
     "cmake.cmakePath": "${userHome}/workdir/tools/cmake-3.27.0-rc4-linux-x86_64/bin/cmake",
+    "cmake.configureOnOpen": false,
 }

@@ -1,7 +1,8 @@
 __pycache__
 .venv
 test_images
-photos
+*/photos/photo_*
+grbrt_spb
 tmp_photos
 new_photos
 indexies

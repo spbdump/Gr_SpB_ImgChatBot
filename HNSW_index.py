@@ -128,14 +128,14 @@ def add_item_to_index(descriptors, ids, i_index):
 
 ## new build code
 
-def build_index_from_exist(path_to_index :str, collection_size: int,
+def build_index_from_exist(path_to_index :str, index_size: int,
                            chunk_size: int, get_desc_chunk_func):
     index_max_size = 10000
 
-    logger.info("Count documents: %d", collection_size)
+    logger.info("Count documents: %d", index_size)
     logger.info("Populate the index with descriptors")
 
-    if collection_size > index_max_size:
+    if index_size > index_max_size:
         logger.error("Input data too big")
         return
 
@@ -169,10 +169,9 @@ def build_index_from_exist(path_to_index :str, collection_size: int,
 
     return index
 
-def get_neighbors_desc_indexies(index, q_desc: np.ndarray, k=70):
+def get_neighbors_desc_indexes(index, q_desc: np.ndarray, k=70):
 
     query_desc = np.array(q_desc, dtype=np.float32) # take only part of desc to improve performance
-    neighbors_map = {}
 
     logger.info("Search neighbors descriptors in Index")
     neighbors_data = index.knnQuery(query_desc.reshape(-1), k=k) # reurn tuple of indexies and distances
@@ -185,3 +184,10 @@ def get_neighbors_desc_indexies(index, q_desc: np.ndarray, k=70):
     # print(neighbors_map)
 
     return neighbors_data[0]
+
+def add_desc_to_index(path_to_index, desc: np.ndarray):
+    index = load_index(path_to_index)
+
+    index.addDataPoint(desc)
+    index.saveIndex(path_to_index, save_data=False)
+    logger.info("Index were updated")

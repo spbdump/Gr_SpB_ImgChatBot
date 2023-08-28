@@ -53,10 +53,9 @@ def read_array_from_file_by_chunks(filename: str, chunk_size: int, cnt_chunks: i
     with open(filename, 'rb') as file:
         element_size = np.dtype(dtype).itemsize
         bytes_to_skip = total_elements_to_skip * element_size
-        file.seek(bytes_to_skip, 0)
 
         for _ in range(cnt_chunks):
-            chunk = np.fromfile(file, dtype=dtype, count=total_chunk_elements)
+            chunk = np.fromfile(file, dtype=dtype, count=total_chunk_elements, offset=bytes_to_skip)
 
             if chunk.size == 0:
                 break
@@ -179,8 +178,8 @@ def fullfill_desc_file(path_to_dir: str, desc_file: str,
                 logger.info("descriptor features len: %s", img_data.descriptor.shape[0])
                 bad_img_counter = bad_img_counter + 1
                 continue
-            
-            img_id = extract_image_id(img_path)
+
+            img_id =  indexed_images # extract_image_id(img_path)
             t_msg_id = img_name_to_id_map.get(img_path, None)
             index_id = 0
 
@@ -188,7 +187,6 @@ def fullfill_desc_file(path_to_dir: str, desc_file: str,
             if t_msg_id == None:
                 txt_bad_data.write(f'Bad telegram message id: {img_path}' + '\n')
                 logger.info("Can't find telegram message id: %s", img_path)
-                continue
 
             imgs_kv_data[img_id] = {"t_msg_id": t_msg_id, "img_name": img_path, "index_id": index_id}
 
@@ -244,3 +242,9 @@ def read_specific_rows_from_file(file_path : str, row_indices, num_columns:int, 
             result.extend(chunk)
             
     return np.array(mapped_indices), np.array(result, dtype=dtype)
+
+
+def get_array_rows_count(filename, row_size: int, dtype=np.float32):
+    file_size = os.path.getsize(filename)
+    element_size = np.dtype(dtype).itemsize
+    return file_size // (row_size * element_size)

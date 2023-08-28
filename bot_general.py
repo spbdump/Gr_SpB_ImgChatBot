@@ -1,7 +1,8 @@
 import os
 
 from img_proccessing import compare_sift_descriprtors, get_image_data
-from HNSW_index import load_index, get_neighbors_desc_indexes, add_desc_to_index
+from HNSW_index import load_index, get_neighbors_desc_indexes, add_desc_to_index, find_index_files 
+from HNSW_index import update_index_size, extract_index_info
 from file_descriptor_utils import read_specific_rows_from_file
 from sqlight_storage import store_img_data, get_context, get_last_img_record
 
@@ -12,21 +13,26 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 
-def find_image_in_index(path_to_index, q_desc, nfeatures=700):
+def find_image_in_index(prefix_path, index_name, desc_name, q_desc, nfeatures=700):
 
     # path_to_index - should contain id, nfeatures, desc size
-    descriptors_file = "./descriptors/test_desc.npy"
+    descriptors_file = prefix_path + desc_name
+    path_to_index = prefix_path + index_name
+    index_size, index_id = extract_index_info(index_name)
 
-    nfeatures_to_cmp = 600
+    if index_size == -1 or index_id == -1:
+        logger.error("Wrong index data")
+
+    nfeatures_to_cmp = nfeatures - 100
     desc_size = 128
+
+    if q_desc.shape[0] != nfeatures:
+        logger.error("Wrong shape descriptor")
 
     if not os.path.exists(path_to_index):
         logger.error("No such index %s:", path_to_index)
 
     index = load_index(path_to_index)
-
-    if q_desc.shape[0] != nfeatures:
-        logger.error("Wrong shape descriptor")
 
     desc_idx_list = get_neighbors_desc_indexes(index, q_desc, k=100)
 
@@ -46,30 +52,32 @@ def find_image_in_index(path_to_index, q_desc, nfeatures=700):
     for idx, desc in zip(mapped_indices, desc_list):
         in_desc = desc.reshape(nfeatures, desc_size)[:nfeatures_to_cmp]
         q_desc = q_desc[:nfeatures_to_cmp]
-        img_id = idx
+        img_id = index_size*index_id + idx
         if compare_sift_descriprtors(q_desc, in_desc, 0.7) == True:
             res_img_id_list.append( img_id )
 
     return res_img_id_list
 
 
-def find_image_in_indexes(path_to_img, path_to_indexes, nfeatures):
-    indexes_list = get_list_indexes(path_to_indexes)
+def find_image_in_indexes(path_to_img, chat_path, nfeatures):
+    indexes_list = find_index_files(chat_path)
     img_data = get_image_data(path_to_img, nfeatures)
     q_desc = img_data.descriptor
 
     res_ids = []
-    for _, path in indexes_list:
-        ids = find_image_in_index(path, q_desc)
+    for index_name, desc_name in indexes_list:
+        ids = find_image_in_index(chat_path, index_name, desc_name, q_desc, nfeatures)
         res_ids.append(ids)
     
     return res_ids, q_desc
 
 
-def update_index(desc):
+def update_index(path_to_meta, desc):
     # append desc to index
     index_path = get_last_index_path()
+    index_name = ''
     add_desc_to_index(index_path, desc)
+    update_index_size(index_name, 1, path_to_meta)
     # save message id, img name, img id, index id to database
 
 
@@ -84,4 +92,4 @@ def get_message_id(img_id):
 def get_chat_ctx(chat_id):
     return get_context(chat_id)
 
-def get_next_img_id():
+#def get_next_img_id():

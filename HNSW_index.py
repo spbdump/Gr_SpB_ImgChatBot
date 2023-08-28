@@ -3,6 +3,8 @@ import numpy as np
 import db_utils
 
 import os
+import json
+import glob
 
 
 # Enable logging
@@ -128,18 +130,19 @@ def add_item_to_index(descriptors, ids, i_index):
 
 ## new build code
 
-def build_index_from_exist(path_to_index :str, index_size: int,
-                           chunk_size: int, get_desc_chunk_func):
-    index_max_size = 10000
+def build_index_from_exist(path_to_index :str, 
+                        #    index_size: int,
+                           chunk_size: int, 
+                           offset: int, 
+                           get_desc_chunk_func):
+    # index_max_size = 10000
+    # if index_size > index_max_size:
+    #     logger.error("Input data too big")
+    #     return
 
-    logger.info("Count documents: %d", index_size)
     logger.info("Populate the index with descriptors")
 
-    if index_size > index_max_size:
-        logger.error("Input data too big")
-        return
-
-    offset = 0
+    index_size = 0
     index = nmslib.init(method='hnsw', space='l2')
 
     for chunk in get_desc_chunk_func():
@@ -147,17 +150,18 @@ def build_index_from_exist(path_to_index :str, index_size: int,
         chunk_rows = chunk.shape[0]
         if chunk_rows == 0:
             break
-        elif chunk_rows < chunk_size:
-            ids = list( range( offset, offset + chunk_rows ) )
         else:
-            ids = list( range( offset, offset + chunk_size ) )
+            ids = list( range( offset, offset + chunk_rows ) )
 
         # should be array(128, nfeatures*cnt_descriptors)
         index.addDataPointBatch(chunk, ids)
         offset = offset + chunk_size
+        index_size = index_size + chunk_rows
 
     logger.info("Index has %d descriptors", offset)
     logger.info("Start building batch index")
+    logger.info("Count documents: %d", index_size)
+
     index.createIndex(print_progress=True)
 
     # Save a meta index, but without data!
@@ -165,9 +169,8 @@ def build_index_from_exist(path_to_index :str, index_size: int,
     index.saveIndex(path_to_index, save_data=False)
 
     logger.info("Buildiing index - Done")
-    logger.info("%d HNSW indexies was builted!", len(hnsw_indexies))
 
-    return index
+    return index, index_size
 
 def get_neighbors_desc_indexes(index, q_desc: np.ndarray, k=70):
 
@@ -191,3 +194,68 @@ def add_desc_to_index(path_to_index, desc: np.ndarray):
     index.addDataPoint(desc)
     index.saveIndex(path_to_index, save_data=False)
     logger.info("Index were updated")
+
+
+def update_index_size(index_name, add_value, metadata_file):
+    all_metadata = read_all_metadata(metadata_file)
+
+    if index_name in all_metadata:
+        curr_size = all_metadata[index_name]["index_size"]
+        all_metadata[index_name]["index_size"] = curr_size + add_value
+
+        save_all_metadata(all_metadata, metadata_file)
+        return True
+    else:
+        return False
+
+
+def append_metadata(index_name, metadata, metadata_file):
+    all_metadata = read_all_metadata(metadata_file)
+
+    # Add or update the metadata for the specified index
+    all_metadata[index_name] = metadata
+
+    # Save the updated metadata back to the file
+    save_all_metadata(all_metadata, metadata_file)
+
+
+def update_metadata(index_name, new_metadata, metadata_file):
+    all_metadata = read_all_metadata(metadata_file)
+
+    if index_name in all_metadata:
+        all_metadata[index_name].update(new_metadata)
+        save_all_metadata(all_metadata, metadata_file)
+        return True
+    else:
+        return False
+
+def read_all_metadata(metadata_file):
+    try:
+        with open(metadata_file, 'r') as file:
+            all_metadata = json.load(file)
+        return all_metadata
+    except FileNotFoundError:
+        return {}
+
+def save_all_metadata(all_metadata, metadata_file):
+    with open(metadata_file, 'w') as file:
+        json.dump(all_metadata, file, indent=4)
+
+
+
+def find_index_files(directory, pattern = 'index_id_*_sz_*_nfeat_*_desc_sz_*.bin'):
+    files = glob.glob(f'{directory}/{pattern}')
+    file_names = [os.path.basename(file) for file in files]
+    return file_names
+
+
+def extract_index_info(index_name):
+    parts = index_name.split('_')
+    if len(parts) >= 4 and parts[0] == 'index' and parts[3] == 'sz':
+        try:
+            index_size = int(parts[4])
+            index_id = '_'.join(parts[1:3])
+            return index_size, index_id
+        except ValueError:
+            pass
+    return -1, -1

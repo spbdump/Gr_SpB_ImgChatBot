@@ -92,7 +92,7 @@ async def receive_tits_or_cats_v2(update: Update, context: CallbackContext) -> N
         }
 
         bot_general.save_img_data(ctx.db_name, img_data)
-        bot_general.update_index(img_desc)
+        bot_general.update_index(ctx.meta_file, img_desc)
 
         logging.info("New image was saved to database")
         return
@@ -103,7 +103,9 @@ async def receive_tits_or_cats_v2(update: Update, context: CallbackContext) -> N
 
         # add link to existed post
         await update.message.reply_text(text="Предупреждение!\nYou got -rep!")
-        await Bot.sendMessage(chat_id=chat_id, text="Исходный пост", reply_to_msg_id=message_id)
+        if message_id != None:
+            await Bot.sendMessage(chat_id=chat_id, text="Исходный пост", reply_to_msg_id=message_id)
+
         return
 
     if len(res) >= 2:

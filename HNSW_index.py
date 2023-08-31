@@ -133,7 +133,6 @@ def add_item_to_index(descriptors, ids, i_index):
 def build_index_from_exist(path_to_index :str, 
                         #    index_size: int,
                            chunk_size: int, 
-                           offset: int, 
                            get_desc_chunk_func):
     # index_max_size = 10000
     # if index_size > index_max_size:
@@ -142,6 +141,7 @@ def build_index_from_exist(path_to_index :str,
 
     logger.info("Populate the index with descriptors")
 
+    offset = 0
     index_size = 0
     index = nmslib.init(method='hnsw', space='l2')
 
@@ -241,13 +241,11 @@ def save_all_metadata(all_metadata, metadata_file):
     with open(metadata_file, 'w') as file:
         json.dump(all_metadata, file, indent=4)
 
-
-
+# or use db function (preferable way)
 def find_index_files(directory, pattern = 'index_id_*_sz_*_nfeat_*_desc_sz_*.bin'):
     files = glob.glob(f'{directory}/{pattern}')
     file_names = [os.path.basename(file) for file in files]
     return file_names
-
 
 def extract_index_info(index_name):
     parts = index_name.split('_')

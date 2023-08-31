@@ -56,53 +56,56 @@ async def receive_tits_or_cats(update: Update, context: CallbackContext) -> None
 async def receive_tits_or_cats_v2(update: Update, context: CallbackContext) -> None:
 
     chat_id = update.message.chat.id
+    ctx = bot_general.get_chat_ctx(chat_id)
+
     # check if this message is a reply or forward from the same chat 
-    if chat_id == tg_chat_utils.CHAT_ID:
+    if chat_id == ctx.chat_id:
         logger.info("This message is just a reply or forward")
         return
-
-    ctx = bot_general.get_chat_ctx(chat_id)
 
     photo_list = update.message.photo
     # Get the last item in the list (the largest photo size)
     photo = photo_list[-1]
     # Get the file ID of the photo
-    # Use the file ID to download the photo
     file_id = photo.file_id
 
     date_time = update.message.date
-    img_id = bot_general.get_next_img_id()
+    img_id = bot_general.generate_next_img_id( ctx.chat_path )
 
     # should has frormat "photo_{img_id}@{date}-{time}.jpg"
     img_name = f'photo_{img_id}@{date_time}.jpg'
-    path_to_img = './photos/' + img_name
+    path_to_img = ctx.chat_path + './photos/' + img_name
 
+    # Use the file ID to download the photo
     file = await context.bot.get_file(file_id)
     await file.download_to_drive(path_to_img)
 
-    res, img_desc = bot_general.find_image_in_indexes(path_to_img)
+    res, img_desc = bot_general.find_image_in_indexes(path_to_img, ctx.chat_path, ctx.nfeatures)
 
     if len(res) == 0:
-        message_id = update.message.id
-        img_data = {
-            "msg_id": message_id,
-            "img_id": img_id,
-            "img_name": img_name,
-            "index_id": 0,
-        }
 
-        bot_general.save_img_data(ctx.db_name, img_data)
-        bot_general.update_index(ctx.meta_file, img_desc)
+        if img_desc.shape[1] < ctx.nfeatures:
+            await update.message.reply_text(text="Can't calculate enough features. Image wasn't indexed!\n")
+            return
+
+        # should be before saving img data to db
+        # because can create new index
+        bot_general.update_index( ctx.chat_path, img_desc)
+
+        message_id = update.message.id
+        bot_general.save_img_data(ctx.chat_path, img_name, message_id)
 
         logging.info("New image was saved to database")
+        #await update.message.reply_text(text="Image was indexed!\n")
         return
 
     if len(res) == 1:
-        img_id = res[0]
-        message_id = bot_general.get_message_id(img_id)
+        img_id, index_id = res[0]
+        message_id = bot_general.get_message_id(img_id, index_id, ctx.chat_path)
 
         # add link to existed post
         await update.message.reply_text(text="Предупреждение!\nYou got -rep!")
+
         if message_id != None:
             await Bot.sendMessage(chat_id=chat_id, text="Исходный пост", reply_to_msg_id=message_id)
 

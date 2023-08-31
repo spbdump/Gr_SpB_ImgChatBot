@@ -1,6 +1,7 @@
 import HNSW_index
 import img_proccessing
 import file_descriptor_utils
+import sqlite_db_utils
 
 import os
 from datetime import datetime
@@ -17,60 +18,70 @@ def main():
     path_to_indexed_img = path_prefix + "/photos/"
     path_to_img = path_to_indexed_img + "photo_586@30-04-2022_21-24-19.jpg"
 
-    # should contain id, nfeatures, desc size
-    index_path = "./indexies/test_index.bin"
-    descriptors_file = path_prefix + "all_desc_np_float32.npy"
 
     expected_found = True
 
+    cnt_imgs = 3800
+
     index_size = 1000
     chunk_size = 200
-    cnt_imgs = 0
     cnt_chunks = int(index_size/chunk_size)
     imgs_max_cnt = 10000
-    nfeatures = 700
     nfeatures_to_cmp = 600
+    nfeatures = 700
     desc_size = 128
     metadata_file = path_prefix + 'metadata.json'
-
-
-    # fill file descriptors 
-    if not os.path.exists(descriptors_file):
-        cnt_imgs = file_descriptor_utils.fullfill_desc_file(path_prefix,
-                                                 descriptors_file,
-                                                 nfeatures,
-                                                 -1, chunk_size)
-    else:
-        cnt_imgs = file_descriptor_utils.get_array_rows_count(descriptors_file, desc_size*nfeatures)
-    print("count descriptors in desc file: ", cnt_imgs)
-
     cnt_indexies = int(cnt_imgs/index_size) + 1
 
-    desc_offset = 0
+    path_to_imgs_dir = path_prefix + 'photos/'
+    list_imgs = file_descriptor_utils.get_image_files(path_to_imgs_dir)
+    if imgs_max_cnt > 0 and imgs_max_cnt < len(list_imgs) :
+        list_imgs = list_imgs[:imgs_max_cnt]
+
+    sqlite_db_utils.create_iamge_table(path_prefix)
+    sqlite_db_utils.create_index_table(path_prefix)
+
     for i in range(0, cnt_indexies):
         index_name = f'index_id_{i}_sz_{index_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.bin'
-        desc_name =  'all_desc_np_float32.npy' #f'desc_id_{i}_sz_{index_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.bin'
+        desc_name =  f'desc_id_{i}_sz_{index_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.bin'
+
+        descriptors_file = path_prefix + desc_name
+        # fill file descriptors 
+        if not os.path.exists(descriptors_file):
+            imgs_offset = i*index_size
+            file_descriptor_utils.fullfill_desc_file(path_prefix,
+                                                    list_imgs[imgs_offset:imgs_offset+index_size],
+                                                    descriptors_file,
+                                                    i,
+                                                    nfeatures,
+                                                    chunk_size)
+        else:
+            cnt_imgs = file_descriptor_utils.get_array_rows_count(descriptors_file, desc_size*nfeatures)
+        print("count descriptors in desc file: ", cnt_imgs)
 
         index_path = path_prefix + index_name
         get_desc_chunk_func = functools.partial(file_descriptor_utils.read_array_from_file_by_chunks,
                                         filename=descriptors_file, 
                                         chunk_size=chunk_size, 
                                         cnt_chunks=cnt_chunks, 
-                                        nfeatures=nfeatures,
-                                        offset=desc_offset)
+                                        nfeatures=nfeatures)
 
-        index, builded_index_size = HNSW_index.build_index_from_exist(index_path, chunk_size, desc_offset, get_desc_chunk_func)
-        metadata = {
+        index, builded_index_size = HNSW_index.build_index_from_exist(index_path, chunk_size, get_desc_chunk_func)
+
+        index_rec = {
             "index_name": index_name,
             "desc_name" : desc_name,
+            "index_id"  : i,
+            "max_size"  : index_size,
             "nfeatures" : nfeatures,
             "desc_size" : desc_size,
             "index_size": builded_index_size,
-            "updated_at": str(datetime.now()),
+            # "updated_at": str(datetime.now()),
         }
-        HNSW_index.append_metadata(index_name, metadata, metadata_file)
+        sqlite_db_utils.add_index_record(index_rec)
 
-        desc_offset = desc_offset + builded_index_size
+        # HNSW_index.update_metadata("curr_index", index_name, metadata_file)
+        # HNSW_index.append_metadata(index_name, metadata, metadata_file)
 
     img_data = img_proccessing.get_image_data(path_to_img, nfeatures)
     q_desc = img_data.descriptor

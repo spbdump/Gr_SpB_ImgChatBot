@@ -5,7 +5,7 @@ import json
 import re
 import os
 
-from sqlight_storage import store_img_data
+from sqlite_db_utils import store_img_data
 
 # Enable logging
 import logging
@@ -132,15 +132,12 @@ def extract_image_id(img_name):
     else:
         return None
 
-def fullfill_desc_file(path_to_dir: str, desc_file: str,
+def fullfill_desc_file(path_to_dir: str, list_imgs, desc_file: str,
+                       index_id: int,
                        first_nfeatures: int,
-                       max_imgs_cnt:int, chunk_size:int):
+                       chunk_size:int):
 
-    path_to_db = path_to_dir + '/kv_storage.sqlite'
     path_to_imgs_dir = path_to_dir + 'photos/'
-    list_imgs = get_image_files(path_to_imgs_dir)
-    if max_imgs_cnt > 0 and max_imgs_cnt < len(list_imgs) :
-        list_imgs = list_imgs[:max_imgs_cnt]
 
     # debug
     # write_images_list_to_file(path_to_imgs_data, list_imgs)
@@ -165,37 +162,41 @@ def fullfill_desc_file(path_to_dir: str, desc_file: str,
         else:
             last_idx = len(list_imgs)
 
-        imgs_kv_data = {}
+        imgs_kv_data = []
         imgs_data = np.array([], dtype=np.float32).reshape(0, 128*first_nfeatures)
-        for img_path in list_imgs[curr_idx:last_idx]:
-            img_data = img_proccessing.get_image_data(path_to_imgs_dir + img_path, first_nfeatures)
+        for img_name in list_imgs[curr_idx:last_idx]:
+            img_data = img_proccessing.get_image_data(path_to_imgs_dir + img_name, first_nfeatures)
 
             if img_data.descriptor.shape[0] < first_nfeatures:
                 #debug
-                txt_bad_data.write(f'Bad image feature detection: {img_path}' + '\n')
+                txt_bad_data.write(f'Bad image feature detection: {img_name}' + '\n')
 
-                logger.info("Bad image feature detection: %s", img_path)
+                logger.info("Bad image feature detection: %s", img_name)
                 logger.info("descriptor features len: %s", img_data.descriptor.shape[0])
                 bad_img_counter = bad_img_counter + 1
                 continue
 
             img_id =  indexed_images # extract_image_id(img_path)
-            t_msg_id = img_name_to_id_map.get(img_path, None)
-            index_id = 0
+            t_msg_id = img_name_to_id_map.get(img_name, None)
 
             #debug
             if t_msg_id == None:
-                txt_bad_data.write(f'Bad telegram message id: {img_path}' + '\n')
-                logger.info("Can't find telegram message id: %s", img_path)
+                txt_bad_data.write(f'Bad telegram message id: {img_name}' + '\n')
+                logger.info("Can't find telegram message id: %s", img_name)
 
-            imgs_kv_data[img_id] = {"t_msg_id": t_msg_id, "img_name": img_path, "index_id": index_id}
+            imgs_kv_data.append( {
+                "index_id": index_id,
+                "img_id": img_id, #in index and pos in desc file
+                "t_msg_id": t_msg_id,
+                "img_name": img_name,
+            } )
 
             desc = img_data.descriptor[:first_nfeatures].reshape(1,-1)
             imgs_data = np.vstack((imgs_data, desc), dtype=np.float32)
             indexed_images = indexed_images + 1
 
         append_array_with_same_width(desc_file, imgs_data)
-        store_img_data(path_to_db, imgs_kv_data)
+        store_img_data(imgs_kv_data, path_to_dir)
 
         # debug
         # np.savetxt("./descriptors/test_descriptors.txt", imgs_data, fmt="%.2f")

@@ -109,8 +109,8 @@ def get_image_data(path_to_img, nfeatures:int =NFEATURES) -> image_d.ImageData:
     sift = cv2.SIFT_create(nfeatures=nfeatures, contrastThreshold=0.04, edgeThreshold=10)
     kps, desc = sift.detectAndCompute(img, None)
 
-    if desc.shape[0] < nfeatures:
-        desc = try_add_preprocess(img, sift, nfeatures)
+    # if desc.shape[0] < nfeatures:
+    #     desc = try_add_preprocess(img, sift, nfeatures)
 
     return image_d.ImageData(desc, image_d.DescriptorType.SIF, img_name=os.path.basename(path_to_img))
 

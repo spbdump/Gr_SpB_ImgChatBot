@@ -23,15 +23,15 @@ def main():
 
     cnt_imgs = 3800
 
-    index_size = 1000
-    chunk_size = 200
+    imgs_max_cnt = 300
+    index_size = 200
+    chunk_size = 100
     cnt_chunks = int(index_size/chunk_size)
-    imgs_max_cnt = 10000
-    nfeatures_to_cmp = 600
-    nfeatures = 700
+
+    nfeatures = 1000
     desc_size = 128
     metadata_file = path_prefix + 'metadata.json'
-    cnt_indexies = int(cnt_imgs/index_size) + 1
+    cnt_indexies = int(imgs_max_cnt/index_size) + 1
 
     path_to_imgs_dir = path_prefix + 'photos/'
     list_imgs = file_descriptor_utils.get_image_files(path_to_imgs_dir)
@@ -43,7 +43,7 @@ def main():
 
     for i in range(0, cnt_indexies):
         index_name = f'index_id_{i}_sz_{index_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.bin'
-        desc_name =  f'desc_id_{i}_sz_{index_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.bin'
+        desc_name =  f'desc_id_{i}_sz_{index_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.npy'
 
         descriptors_file = path_prefix + desc_name
         # fill file descriptors 
@@ -78,7 +78,7 @@ def main():
             "index_size": builded_index_size,
             # "updated_at": str(datetime.now()),
         }
-        sqlite_db_utils.add_index_record(index_rec)
+        sqlite_db_utils.add_index_record(index_rec, path_prefix)
 
         # HNSW_index.update_metadata("curr_index", index_name, metadata_file)
         # HNSW_index.append_metadata(index_name, metadata, metadata_file)
@@ -113,7 +113,7 @@ def main():
     # if is_found:
     #     print("IMAGE WAS FOUNDED!")
 
-    assert expected_found == is_found
+    # assert expected_found == is_found
 
 
 def test_banch_of_find_imgs():

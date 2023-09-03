@@ -257,3 +257,12 @@ def extract_index_info(index_name):
         except ValueError:
             pass
     return -1, -1
+
+
+def create_empty_index( path_to_index:str ):
+    index = nmslib.init(method='hnsw', space='l2')
+    index.createIndex(print_progress=True)
+    logger.info("Buildiing index - Done")
+
+    index.saveIndex(path_to_index, save_data=False)
+    logger.info("Save index to %s", path_to_index)

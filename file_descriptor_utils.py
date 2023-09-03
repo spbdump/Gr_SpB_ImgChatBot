@@ -199,13 +199,20 @@ def fullfill_desc_file(path_to_dir: str, list_imgs, desc_file: str,
         store_img_data(imgs_kv_data, path_to_dir)
 
         # debug
-        # np.savetxt("./descriptors/test_descriptors.txt", imgs_data, fmt="%.2f")
+        # np.savetxt(desc_file+"_.txt", imgs_data, fmt="%.2f")
+        with open(desc_file+"_.txt", 'a') as file:
+            # Iterate over the rows of the NumPy array and write each row as a new line
+            for row in imgs_data:
+                # Convert the row to a string with tabs as delimiters and write it to the file
+                file.write('\t'.join(map(str, row)) + '\n')
 
         curr_idx += chunk_size
 
     logger.info("Batch fullfilled. Processed %d images", curr_idx)
     logger.info("Bad images %d", bad_img_counter)
-    logger.info("Index has %.2f%% of banch images", float(100.0 - (bad_img_counter*100)/len(list_imgs)) )
+
+    if bad_img_counter != 0:
+        logger.info("Index has %.2f%% of banch images", float(100.0 - (bad_img_counter*100)/len(list_imgs)) )
 
     return indexed_images
 
@@ -227,22 +234,53 @@ def read_specific_rows_from_file(file_path : str, row_indices, num_columns:int, 
     result = []
     mapped_indices = []
 
-    with open(file_path, 'rb') as file:
-        for start_idx in range(0, len(row_indices), chunk_size):
-            end_idx = min(start_idx + chunk_size, len(row_indices))
-            chunk_indices = row_indices[start_idx:end_idx]
+    # with open(file_path, 'rb') as file:
+    #     for start_idx in range(0, len(row_indices), chunk_size):
+    #         end_idx = min(start_idx + chunk_size, len(row_indices))
+    #         chunk_indices = row_indices[start_idx:end_idx]
             
-            # Create a memory-mapped array for the chunk
-            mmap_array = np.memmap(file, dtype=dtype, mode='r', shape=(len(chunk_indices), num_columns))
+    #         # Create a memory-mapped array for the chunk
+    #         mmap_array = np.memmap(file, dtype=dtype, mode='r', shape=(len(chunk_indices), num_columns))
             
-            # Append the chunk indices to the list of mapped indices
-            mapped_indices.extend(chunk_indices)
+    #         # Append the chunk indices to the list of mapped indices
+    #         mapped_indices.extend(chunk_indices)
 
-            # Retrieve the rows using the indices
-            chunk = mmap_array
-            result.extend(chunk)
-            
+    #         # Retrieve the rows using the indices
+    #         chunk = mmap_array
+    #         result.extend(chunk)
+
+    # Calculate the number of elements to read
+    num_elements = len(row_indices) * num_columns
+    # Initialize an empty array to store the selected rows
+    selected_rows = np.empty((len(row_indices), num_columns), dtype=dtype)
+
+    # Read the specified rows from the binary file
+    with open(file_path, 'rb') as file:
+        for i, row_idx in enumerate(row_indices):
+            file.seek(row_idx * num_columns * dtype.size)  # Assuming 4 bytes per element (float32)
+            print("huy: ", i)
+            selected_rows[i] = np.fromfile(file, dtype=dtype, count=num_columns)
+
+    return selected_rows
+
     return np.array(mapped_indices), np.array(result, dtype=dtype)
+
+def read_specific_rows_from_binfile(file_path, rows_to_read, num_columns:int, dtype=np.float32):
+    # Calculate the number of elements to read
+    num_elements = len(rows_to_read) * num_columns
+
+    # Initialize an empty array to store the selected rows
+    selected_rows = np.empty((len(rows_to_read), num_columns), dtype=dtype)
+
+    # Read the specified rows from the binary file
+    with open(file_path, 'rb') as file:
+        for i, row_idx in enumerate(rows_to_read):
+            print(row_idx)
+            bytes_to_skip = row_idx * num_columns * (np.dtype(dtype).itemsize)
+            file.seek(bytes_to_skip)  # Assuming 4 bytes per element (float32)
+            selected_rows[i] = np.fromfile(file, dtype=dtype, count=num_columns)
+
+    return selected_rows
 
 
 def get_array_rows_count(filename, row_size: int, dtype=np.float32):

@@ -1,6 +1,8 @@
 import sqlite3
 from datetime import datetime
 
+index_table_name = 'indexes'
+
 def create_iamge_table(prefix_path:str, name:str = 'chat.db'):
     path_to_db = prefix_path + name
     conn = sqlite3.connect(path_to_db)
@@ -110,7 +112,7 @@ def add_index_record(index_data, prefix_path: str, name:str = 'chat.db'):
 
     # Insert the record into the index table
     insert_query = '''
-        INSERT INTO index_table 
+        INSERT INTO indexes 
         (index_id, index_name, index_size, max_size, nfeatures, desc_size, desc_name) 
         VALUES (?, ?, ?, ?, ?, ?, ?)
     '''
@@ -135,10 +137,58 @@ def get_index_triplets(prefix_path: str, name:str = 'chat.db'):
 
     # Query to retrieve index_id, index_name, and desc_name triples
     select_query = '''
-        SELECT index_id, index_name, desc_name FROM index_table
+        SELECT index_id, index_name, desc_name FROM indexes
     '''
     cursor.execute(select_query)
     triplets = cursor.fetchall()
 
     conn.close()
     return triplets
+
+def update_index_size(index_id:int, add_value:int, prefix_path: str, name:str = 'chat.db'):
+    path_to_db = prefix_path + name
+    try:
+        # Connect to the SQLite database
+        conn = sqlite3.connect(path_to_db)
+        cursor = conn.cursor()
+
+        # Get the current value from the specified column
+        select_query = f"SELECT index_size FROM {index_table_name} WHERE index_id = ?"
+        cursor.execute(select_query, (index_id,))
+        current_value = cursor.fetchone()[0]
+
+        # Calculate the new value by adding the add_value
+        new_value = current_value + add_value
+
+        # Update the specified column with the new value
+        update_query = f"UPDATE {index_table_name} SET index_size = ? WHERE index_id = ?"
+        cursor.execute(update_query, (new_value, index_id))
+
+        # Commit the changes
+        conn.commit()
+        conn.close()
+        return True  # Success
+    except sqlite3.Error as e:
+        print("SQLite error:", e)
+        return False  # Error
+
+
+def get_last_index_data(prefix_path: str, name:str = 'chat.db'):
+    path_to_db = prefix_path + name
+    try:
+        # Connect to the SQLite database
+        conn = sqlite3.connect(path_to_db)
+        cursor = conn.cursor()
+
+        # Get the data of the last index based on the index_id (assuming index_id is an auto-incremented primary key)
+        select_query = "SELECT * FROM indexes ORDER BY index_id DESC LIMIT 1"
+        cursor.execute(select_query)
+        last_index_data = cursor.fetchone()
+
+        # Close the database connection
+        conn.close()
+
+        return last_index_data  # Returns a tuple containing the data of the last index
+    except sqlite3.Error as e:
+        print("SQLite error:", e)
+        return None  # Error or no data found

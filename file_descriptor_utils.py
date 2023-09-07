@@ -275,7 +275,6 @@ def read_specific_rows_from_binfile(file_path, rows_to_read, num_columns:int, dt
     # Read the specified rows from the binary file
     with open(file_path, 'rb') as file:
         for i, row_idx in enumerate(rows_to_read):
-            print(row_idx)
             bytes_to_skip = row_idx * num_columns * (np.dtype(dtype).itemsize)
             file.seek(bytes_to_skip)  # Assuming 4 bytes per element (float32)
             selected_rows[i] = np.fromfile(file, dtype=dtype, count=num_columns)

@@ -192,3 +192,29 @@ def get_last_index_data(prefix_path: str, name:str = 'chat.db'):
     except sqlite3.Error as e:
         print("SQLite error:", e)
         return None  # Error or no data found
+
+
+def read_image_data_batch(database_path, batch_size, offset=0):
+    try:
+        connection = sqlite3.connect(database_path)
+        cursor = connection.cursor()
+
+        # Execute a SQL query to fetch the desired fields for a batch of records with an offset
+        cursor.execute(f"SELECT img_name, index_id, img_id FROM image_data LIMIT {batch_size} OFFSET {offset}")
+
+        # Fetch the results
+        results = cursor.fetchall()
+
+        # Close the database connection
+        connection.close()
+
+        # Extract the data into separate lists
+        image_names = [row[0] for row in results]
+        index_ids = [row[1] for row in results]
+        image_ids = [row[2] for row in results]
+
+        return image_names, index_ids, image_ids
+
+    except sqlite3.Error as e:
+        print(f"SQLite error: {e}")
+        return None, None, None

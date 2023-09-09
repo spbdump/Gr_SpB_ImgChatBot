@@ -105,9 +105,14 @@ def get_image_data(path_to_img, nfeatures:int =NFEATURES) -> image_d.ImageData:
     if img is None:
         logger.info("Can't open image: %s", path_to_img)
         return image_d.ImageData([[]], image_d.DescriptorType.SIF, img_name="")
+    
+    logger.debug("Preprocess: scale image")
+    width = int(img.shape[1] * 1.5)
+    height = int(img.shape[0] * 1.5)
+    scaled_img = cv2.resize(img, (width, height))
 
     sift = cv2.SIFT_create(nfeatures=nfeatures, contrastThreshold=0.04, edgeThreshold=10)
-    kps, desc = sift.detectAndCompute(img, None)
+    kps, desc = sift.detectAndCompute(scaled_img, None)
 
     # if desc.shape[0] < nfeatures:
     #     desc = try_add_preprocess(img, sift, nfeatures)
@@ -117,18 +122,18 @@ def get_image_data(path_to_img, nfeatures:int =NFEATURES) -> image_d.ImageData:
 
 def try_add_preprocess(img, detector, nfeatures):
     # Case 3: Image Resizing (Creating an Image Pyramid)
-    width = int(img.shape[1] * 1.5)
-    height = int(img.shape[0] * 1.5)
-    scaled_img = cv2.resize(img, (width, height))
+    # width = int(img.shape[1] * 1.5)
+    # height = int(img.shape[0] * 1.5)
+    # scaled_img = cv2.resize(img, (width, height))
 
-    logger.debug("Preprocess: scale image")
-    kps, desc = detector.detectAndCompute(scaled_img, None)
+    # logger.debug("Preprocess: scale image")
+    # kps, desc = detector.detectAndCompute(scaled_img, None)
 
-    enhanced_image = scaled_img
-    if desc.shape[0] < nfeatures:
-        logger.debug("Preprocess: histogram equalization")
-        enhanced_image = cv2.equalizeHist(scaled_img)
-        kps, desc = detector.detectAndCompute(enhanced_image, None)
+    enhanced_image = img
+    # if desc.shape[0] < nfeatures:
+    logger.debug("Preprocess: histogram equalization")
+    enhanced_image = cv2.equalizeHist(scaled_img)
+    kps, desc = detector.detectAndCompute(enhanced_image, None)
 
     blurred_image = enhanced_image
     if desc.shape[0] < nfeatures:

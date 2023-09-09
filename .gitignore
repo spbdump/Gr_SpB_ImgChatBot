@@ -9,3 +9,4 @@ indexies
 .env
 *src_imgs
 descriptors
+*.db

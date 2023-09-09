@@ -1,5 +1,5 @@
 from telegram import Update, Bot
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext,  ContextTypes
 
 # Enable logging
 import logging
@@ -7,10 +7,6 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 import img_proccessing
-import db_utils
-import tg_chat_utils
-
-
 import bot_general
 
 async def receive_tits_or_cats(update: Update, context: CallbackContext) -> None:
@@ -39,12 +35,12 @@ async def receive_tits_or_cats(update: Update, context: CallbackContext) -> None
     res = img_proccessing.poces_similar_sift_descriprors(img_data.descriptor)
 
     if len(res) == 0:
-        db_utils.save_img_data([img_data])
+        #db_utils.save_img_data([img_data])
         logging.info("New image was saved to database")
         return
 
     if len(res) == 1:
-        message_id = db_utils.get_addtional_data_about_image(res[0]["_id"])
+        #message_id = db_utils.get_addtional_data_about_image(res[0]["_id"])
         # add link to existed post
         await update.message.reply_text(text="Предупреждение!\nYou got -rep!")
         return
@@ -53,15 +49,22 @@ async def receive_tits_or_cats(update: Update, context: CallbackContext) -> None
         await update.message.reply_text(text="I got unpredictable result!\nВозможное предупредупреждение!")
 
 
-async def receive_tits_or_cats_v2(update: Update, context: CallbackContext) -> None:
+async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
-    chat_id = update.message.chat.id
-    ctx = bot_general.get_chat_ctx(chat_id)
+    m_chat_id = update.message.chat.id
+    ctx = bot_general.get_chat_ctx(m_chat_id)
 
-    # check if this message is a reply or forward from the same chat 
-    if chat_id == ctx.chat_id:
-        logger.info("This message is just a reply or forward")
+    if ctx == None:
+        logger.error("Bad state: can't get context for chat_id", m_chat_id)
         return
+    
+    chat_path = ctx.chat_path
+    nfeatures = ctx.nfeatures
+    #c_chat_id = ctx.chat_id
+    # check if this message is a reply or forward from the same chat 
+    # if m_chat_id == c_chat_id:
+    #     logger.info("This message is just a reply or forward")
+    #     return
 
     photo_list = update.message.photo
     # Get the last item in the list (the largest photo size)
@@ -70,30 +73,34 @@ async def receive_tits_or_cats_v2(update: Update, context: CallbackContext) -> N
     file_id = photo.file_id
 
     date_time = update.message.date
-    img_id = bot_general.generate_next_img_id( ctx.chat_path )
+    img_id = bot_general.generate_next_img_id( chat_path )
 
     # should has frormat "photo_{img_id}@{date}-{time}.jpg"
     img_name = f'photo_{img_id}@{date_time}.jpg'
-    path_to_img = ctx.chat_path + './photos/' + img_name
+    path_to_img = chat_path + '/tmp/' + img_name
 
     # Use the file ID to download the photo
     file = await context.bot.get_file(file_id)
     await file.download_to_drive(path_to_img)
 
-    res, img_desc = bot_general.find_image_in_indexes(path_to_img, ctx.chat_path, ctx.nfeatures)
+    res, img_desc = bot_general.find_image_in_indexes(path_to_img, chat_path, nfeatures)
 
     if len(res) == 0:
 
-        if img_desc.shape[1] < ctx.nfeatures:
+        if img_desc.shape[0] < nfeatures:
+            logger.info("Image has %d features, should be %d", img_desc.shape[0], nfeatures)
             await update.message.reply_text(text="Can't calculate enough features. Image wasn't indexed!\n")
             return
 
+        # move this check to get_imag_data
+        if img_desc.shape[0] > nfeatures:
+            img_desc = img_desc[:nfeatures]
         # should be before saving img data to db
         # because can create new index
-        bot_general.update_index( ctx.chat_path, img_desc)
+        bot_general.update_index( img_desc, ctx )
 
         message_id = update.message.id
-        bot_general.save_img_data(ctx.chat_path, img_name, message_id)
+        bot_general.save_img_data(chat_path, img_name, message_id)
 
         logging.info("New image was saved to database")
         #await update.message.reply_text(text="Image was indexed!\n")
@@ -101,7 +108,7 @@ async def receive_tits_or_cats_v2(update: Update, context: CallbackContext) -> N
 
     if len(res) == 1:
         img_id, index_id = res[0]
-        message_id = bot_general.get_message_id(img_id, index_id, ctx.chat_path)
+        message_id = bot_general.get_message_id(img_id, index_id, chat_path)
 
         # add link to existed post
         await update.message.reply_text(text="Предупреждение!\nYou got -rep!")

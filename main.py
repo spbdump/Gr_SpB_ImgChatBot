@@ -1,3 +1,4 @@
+import os
 
 from telegram.ext import (
     Application,
@@ -12,9 +13,16 @@ import handlers
 import logging
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def main():
+
+    BOT_TOKEN = os.environ.get('BOT_TOKEN')
+
+    if BOT_TOKEN == None:
+        logger.error("Can't read bot token env")
+        return
 
     app = Application.builder().token(BOT_TOKEN).build()
 

@@ -3,36 +3,33 @@ import re
 
 from img_proccessing import compare_sift_descriprtors, get_image_data
 from HNSW_index import load_index, get_neighbors_desc_indexes, \
-                       add_desc_to_index, find_index_files 
-from HNSW_index import extract_index_info, create_empty_index
-from file_descriptor_utils import read_specific_rows_from_file, \
-                                  append_array_with_same_width, \
+                       add_desc_to_index, create_empty_index, \
+                       MIN_FEATURES, MAX_INDEX_SIZE, SIFT_DESC_SIZE
+
+from file_descriptor_utils import append_array_with_same_width, \
                                   read_specific_rows_from_binfile
-from sqlight_storage import  get_context
 
 from sqlite_db_utils import store_img_data, get_last_image_data, \
                             update_index_size, find_msg_id, \
                             get_index_triplets, get_last_index_data, \
-                            add_index_record
+                            add_index_record, get_context_by_chat_id, \
+                            create_index_table, create_iamge_table
+
+from context import Context
 
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-MIN_FEATURES = 700
+
 
 def find_image_in_index(prefix_path, index_name, desc_name, q_desc, nfeatures:int =MIN_FEATURES):
-
-    # path_to_index - should contain id, nfeatures, desc size
     descriptors_file = prefix_path + desc_name
     path_to_index = prefix_path + index_name
 
     nfeatures_to_cmp = nfeatures
     desc_size = 128
-
-    if q_desc.shape[0] != nfeatures:
-        logger.error("Wrong shape descriptor")
 
     if not os.path.exists(path_to_index):
         logger.error("No such index %s:", path_to_index)
@@ -64,9 +61,17 @@ def find_image_in_index(prefix_path, index_name, desc_name, q_desc, nfeatures:in
 
 
 def find_image_in_indexes(path_to_img, chat_path, nfeatures:int =MIN_FEATURES):
-    index_triplets = get_index_triplets(chat_path) # find_index_files(chat_path)
     img_data = get_image_data(path_to_img, nfeatures)
     q_desc = img_data.descriptor
+
+    index_triplets = get_index_triplets(chat_path)
+    if index_triplets == None:
+        logger.error("Can't get indexes data")
+        return [], q_desc
+
+    if q_desc.shape[0] < nfeatures:
+        logger.error("Wrong shape descriptor")
+        return [], q_desc
 
     res_ids = []
     for index_id, index_name, desc_name in index_triplets:
@@ -83,42 +88,63 @@ def generate_new_index_data(prefix_path: str, index_data):
     nfeatures = index_data["nfeatures"]
     desc_size = index_data["desc_size"]
     index_size = index_data["index_size"]
+    max_size = index_data["max_size"]
     i = index_data["index_id"] + 1
 
-    index_name = f'index_id_{i}_sz_{index_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.bin'
-    desc_name =  f'desc_id_{i}_sz_{index_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.npy'
+    index_name = f'index_id_{i}_sz_{max_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.bin'
+    desc_name =  f'desc_id_{i}_sz_{max_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.npy'
 
     index_rec = {
             "index_name": index_name,
             "desc_name" : desc_name,
             "index_id"  : i,
-            "max_size"  : index_size,
+            "max_size"  : max_size,
             "nfeatures" : nfeatures,
             "desc_size" : desc_size,
-            "index_size": 0,
+            "index_size": index_size,
         }
     return index_rec
 
-def update_index(prefix_path:str, desc):
-    # append desc to index
+def update_index(desc, ctx: Context ):
+    prefix_path = ctx.chat_path
     index_data = get_last_index_data( prefix_path )
 
+    curr_size = 0
+    max_size = MAX_INDEX_SIZE
+    desc_size = SIFT_DESC_SIZE
+    nfeatures = MIN_FEATURES
+
     if index_data == None:
-        logger.error("Can't retrive index data")
-        return
+        logger.info("Index list is empty")
+        # create nessesary tables
+        create_index_table(prefix_path)
+        create_iamge_table(prefix_path)
 
-    curr_size = index_data["index_size"]
-    max_size = index_data["max_index_size"]
+        # retrive data from ctx
+        max_size = ctx.max_size
+        desc_size = ctx.desc_size
+        nfeatures = ctx.nfeatures
 
-    desc_size = index_data["desc_size"]
-    nfeatures = index_data["nfeatures"]
+        index_data = {}
+        index_data["index_size"] = 0
+        index_data["index_id"] = -1
+        index_data["max_size"] = max_size
+        index_data["desc_size"] = desc_size
+        index_data["nfeatures"] = nfeatures
 
-    if desc.shape != [[1],[desc_size*nfeatures]]:
-        logger.error("Descriptor shape isn't match. Current: ", desc.shape, ", Expected: ", [[1],[desc_size*nfeatures]])
+    else:
+        curr_size = index_data["index_size"]
+        max_size =  index_data["max_size"]
+        desc_size = index_data["desc_size"]
+        nfeatures = index_data["nfeatures"]
+
+    if desc.shape[0] < nfeatures and desc.shape[1] == desc_size:
+        logger.error("Descriptor shape isn't match. Current: ", 
+                     desc.shape, ", Expected: ", [[1],[desc_size*nfeatures]])
         logger.error("Index wasn't updated")
         return
 
-    if curr_size == max_size:
+    if curr_size == max_size or curr_size == 0:
         index_data = generate_new_index_data(prefix_path, index_data)
         index_name = index_data["index_name"]
         create_empty_index(prefix_path + index_name)
@@ -127,9 +153,10 @@ def update_index(prefix_path:str, desc):
     index_name = index_data["index_name"]
     desc_name = index_data["desc_name"]
     index_id = index_data["index_id"]
+    index_size = index_data["index_size"]
     index_path = prefix_path + index_name
 
-    add_desc_to_index(index_path, desc)
+    add_desc_to_index(index_path, desc, index_size)
     append_array_with_same_width(prefix_path + desc_name, desc)
 
     update_index_size(index_id, 1, prefix_path)
@@ -161,7 +188,7 @@ def get_message_id(prefix_path:str, img_id: int, index_id: int):
     return msg_id
 
 def get_chat_ctx(chat_id):
-    return get_context(chat_id)
+    return get_context_by_chat_id(chat_id)
 
 def get_next_img_id(prefix_path:str):
     index_data = get_last_index_data( prefix_path )
@@ -186,13 +213,16 @@ def get_last_index_id(prefix_path:str):
 # def last_index_is_fullfiled(prefix_path:str):
 #     index_data = get_last_index_data( prefix_path )
 #     curr_size = index_data["index_size"]
-#     max_size = index_data["max_index_size"]
+#     max_size = index_data["max_size"]
 #     return curr_size == max_size
 
 def generate_next_img_id(prefix_path:str):
     img_data = get_last_image_data(prefix_path)
-    image_name = img_data["img_name"]
 
+    if img_data == None:
+        return 0
+
+    image_name = img_data["img_name"]
     match = re.search(r'photo_(\d+)', image_name)
 
     image_id = -1

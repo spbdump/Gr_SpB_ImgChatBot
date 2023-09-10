@@ -36,7 +36,7 @@ def find_image_in_index(prefix_path, index_name, desc_name, q_desc, nfeatures:in
 
     index = load_index(path_to_index)
 
-    desc_idx_list = get_neighbors_desc_indexes(index, q_desc, k=100)
+    desc_idx_list = get_neighbors_desc_indexes(index, q_desc, k=5)
 
     del index
 
@@ -87,7 +87,7 @@ def generate_new_index_data(prefix_path: str, index_data):
 
     nfeatures = index_data["nfeatures"]
     desc_size = index_data["desc_size"]
-    index_size = index_data["index_size"]
+    index_size = 0
     max_size = index_data["max_size"]
     i = index_data["index_id"] + 1
 
@@ -142,13 +142,15 @@ def update_index(desc, ctx: Context ):
         logger.error("Descriptor shape isn't match. Current: ", 
                      desc.shape, ", Expected: ", [[1],[desc_size*nfeatures]])
         logger.error("Index wasn't updated")
-        return
+        return False
 
     if curr_size == max_size or curr_size == 0:
         index_data = generate_new_index_data(prefix_path, index_data)
         index_name = index_data["index_name"]
-        create_empty_index(prefix_path + index_name)
-        add_index_record(index_data, prefix_path)
+        #create_empty_index(prefix_path + index_name)
+        b_added = add_index_record(index_data, prefix_path)
+        if not b_added:
+            return False
 
     index_name = index_data["index_name"]
     desc_name = index_data["desc_name"]
@@ -156,10 +158,14 @@ def update_index(desc, ctx: Context ):
     index_size = index_data["index_size"]
     index_path = prefix_path + index_name
 
-    add_desc_to_index(index_path, desc, index_size)
+    b_added = add_desc_to_index(index_path, desc, index_size)
+    if not b_added:
+        return False
+    
     append_array_with_same_width(prefix_path + desc_name, desc)
 
-    update_index_size(index_id, 1, prefix_path)
+    b_updated = update_index_size(index_id, 1, prefix_path)
+    return b_updated
 
 
 def save_img_data(prefix_path: str, img_name: str, message_id: int):
@@ -171,7 +177,7 @@ def save_img_data(prefix_path: str, img_name: str, message_id: int):
 
     index_size = index_data["index_size"]
     index_id = index_data["index_id"]
-    img_id = index_size
+    img_id = index_size - 1 # -1 if size updated before
 
     img_data = {
         "index_id": index_id,

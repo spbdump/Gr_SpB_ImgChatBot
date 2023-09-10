@@ -1,5 +1,5 @@
 __pycache__
-.venv
+.venv*
 test_images
 */photos/photo_*
 grbrt_spb
@@ -10,3 +10,4 @@ indexies
 *src_imgs
 descriptors
 *.db
+*.bin

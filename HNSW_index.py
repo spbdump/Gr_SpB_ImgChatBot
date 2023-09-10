@@ -1,4 +1,3 @@
-import nmslib
 import numpy as np
 
 import os
@@ -8,8 +7,10 @@ import glob
 # Enable logging
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+#logging.getLogger('nmslib').setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+import nmslib
 
 MIN_FEATURES = 700
 MAX_INDEX_SIZE = 1500
@@ -57,9 +58,9 @@ SIFT_DESC_SIZE = 128
 def load_index(path):
     index = nmslib.init(method='hnsw', space='l2')
 
-    logger.info("Load index %s", path)
+    logger.info(f"Load index {path}")
     index.loadIndex(path)
-    logger.info("Index was loaded: ", path)
+    logger.info(f"Index was loaded: {path}")
 
     return index
 
@@ -172,26 +173,32 @@ def build_index_from_exist(path_to_index :str,
 
 def get_neighbors_desc_indexes(index, q_desc: np.ndarray, k=70):
 
-    query_desc = np.array(q_desc, dtype=np.float32) # take only part of desc to improve performance
+    # take only part of desc to improve performance
+    #query_desc = np.array(q_desc[:500], dtype=np.float32) 
 
     logger.info("Search neighbors descriptors in Index")
-    neighbors_data = index.knnQuery(query_desc.reshape(-1), k=k) # reurn tuple of indexies and distances
-    
-    # indexies_set = set(neighbors_data[0])
-    # save indexies of descriptors by number of hnsw index batch
-    # neighbors_map[idx] = np.array(list(indexies_set), dtype=np.int32).tolist()
+    neighbors_data = index.knnQuery(q_desc.reshape(-1), k=k) # reurn tuple of indexies and distances
 
     logger.info("%d neighbors was found", len(neighbors_data[0]))
-    # print(neighbors_map)
 
     return neighbors_data[0]
 
 def add_desc_to_index(path_to_index, desc: np.ndarray, id:int):
-    index = load_index(path_to_index)
+    index = nmslib.init(method='hnsw', space='l2')
 
+    if os.path.exists(path_to_index):
+        logger.info("Index file %s already exist", path_to_index)
+        logger.info("Load index %s", path_to_index)
+        index.loadIndex(path_to_index)
+
+    logger.info("Add data point tp index: %s", path_to_index)
     index.addDataPoint(id, desc.reshape(-1))
+    
+    index.createIndex(print_progress=True)
     index.saveIndex(path_to_index, save_data=False)
     logger.info("Index were updated")
+    
+    return True
 
 def update_index_size(index_name, add_value, metadata_file):
     all_metadata = read_all_metadata(metadata_file)

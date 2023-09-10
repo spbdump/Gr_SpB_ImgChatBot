@@ -22,6 +22,25 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}",
             }
+        },
+        {
+            "name": "Python: Debug pytest",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/.venv/bin/pytest",  // Replace with your virtual environment path to pytest
+            "args": [
+                // "-k",
+                "${file}"  // Replace with your test file path
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "stopOnEntry": false,
+            "justMyCode": false,
+            "redirectOutput": true,
+            "showReturnValue": true
         }
     ]
 }

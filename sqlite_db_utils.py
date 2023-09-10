@@ -177,10 +177,11 @@ def add_index_record(index_data, prefix_path: str, name:str = 'chat.db'):
 
         conn.commit()
         conn.close()
-
+        
+        return True
     except sqlite3.Error as e:
         print(f"SQLite error: {e}")
-        # You can choose to raise the exception here or return an error code/message if needed
+        return False
 
 def get_index_triplets(prefix_path: str, name:str = 'chat.db'):
     try:
@@ -226,6 +227,7 @@ def update_index_size(index_id:int, add_value:int, prefix_path: str, name:str = 
         conn.commit()
         conn.close()
         return True  # Success
+
     except sqlite3.Error as e:
         print("SQLite error:", e)
         return False  # Error

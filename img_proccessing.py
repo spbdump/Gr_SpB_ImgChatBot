@@ -105,8 +105,7 @@ def get_image_data(path_to_img, nfeatures:int =NFEATURES) -> image_d.ImageData:
     if img is None:
         logger.info("Can't open image: %s", path_to_img)
         return image_d.ImageData([[]], image_d.DescriptorType.SIF, img_name="")
-    
-    logger.debug("Preprocess: scale image")
+
     width = int(img.shape[1] * 1.5)
     height = int(img.shape[0] * 1.5)
     scaled_img = cv2.resize(img, (width, height))

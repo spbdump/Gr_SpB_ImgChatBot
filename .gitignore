@@ -11,3 +11,4 @@ indexies
 descriptors
 *.db
 *.bin
+*.npy

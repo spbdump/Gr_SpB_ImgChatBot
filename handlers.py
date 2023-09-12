@@ -12,9 +12,9 @@ import bot_general
 async def receive_tits_or_cats(update: Update, context: CallbackContext) -> None:
 
     # check if this message is a reply or forward from the same chat 
-    if update.message.chat.id == tg_chat_utils.CHAT_ID:
-        logger.info("This message is just a reply or forward")
-        return
+    # if update.message.chat.id == tg_chat_utils.CHAT_ID:
+    #     logger.info("This message is just a reply or forward")
+    #     return
 
     photo_list = update.message.photo
 
@@ -85,22 +85,17 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
 
     res, img_desc = bot_general.find_image_in_indexes(path_to_img, chat_path, nfeatures)
 
+    if img_desc.shape[0] < nfeatures:
+        logger.info("Image has %d features, should be %d", img_desc.shape[0], nfeatures)
+        await update.message.reply_text(text="Can't calculate enough features. Image wasn't indexed!\n")
+        return
+
     if len(res) == 0:
-
-        if img_desc.shape[0] < nfeatures:
-            logger.info("Image has %d features, should be %d", img_desc.shape[0], nfeatures)
-            await update.message.reply_text(text="Can't calculate enough features. Image wasn't indexed!\n")
-            return
-
-        # move this check to get_imag_data
-        if img_desc.shape[0] > nfeatures:
-            img_desc = img_desc[:nfeatures]
-        # should be before saving img data to db
-        # because can create new index
-        bot_general.update_index( img_desc, ctx )
-
         message_id = update.message.id
-        bot_general.save_img_data(chat_path, img_name, message_id)
+        bot_general.update_index( ctx, img_desc, img_name, message_id )
+
+        # move this impl to update_index
+        # bot_general.save_img_data(chat_path, img_name, message_id)
 
         logging.info("New image was saved to database")
         #await update.message.reply_text(text="Image was indexed!\n")

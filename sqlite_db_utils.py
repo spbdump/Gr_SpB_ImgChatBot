@@ -82,7 +82,7 @@ def create_ctx_table(prefix_path: str = PATH_TO_GENERAL_DB,
     except sqlite3.Error as e:
         print(f"SQLite error: {e}")
 
-def store_img_data(data, prefix_path:str, name:str = 'chat.db'):
+def store_img_data(data, prefix_path:str, name:str = CHAT_DB_NAME):
     path_to_db = prefix_path + name
     conn = sqlite3.connect(path_to_db)
     cursor = conn.cursor()
@@ -105,7 +105,30 @@ def store_img_data(data, prefix_path:str, name:str = 'chat.db'):
     conn.commit()
     conn.close()
 
-def get_last_image_data(prefix_path:str, name:str = 'chat.db'):
+def save_runtime_img_data(index_id:int, start_id:int, data, prefix_path:str, name:str = CHAT_DB_NAME):
+    path_to_db = prefix_path + name
+    conn = sqlite3.connect(path_to_db)
+    cursor = conn.cursor()
+    # Insert image data into the table
+    for img_data in data:
+        insert_query = '''
+            INSERT INTO image_data 
+            (index_id, img_id, t_msg_id, img_name, created_at) 
+            VALUES (?, ?, ?, ?, ?)
+        '''
+        cursor.execute(insert_query, (
+            index_id,
+            start_id + img_data.img_id,
+            img_data.t_msg_id,
+            img_data.img_name,
+            str(datetime.now())
+        ))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
+def get_last_image_data(prefix_path:str, name:str = CHAT_DB_NAME):
     try:
         path_to_db = prefix_path + name
         conn = sqlite3.connect(path_to_db)
@@ -133,7 +156,7 @@ def get_last_image_data(prefix_path:str, name:str = 'chat.db'):
         print(f"SQLite error: {e}")
         return None  # Return None to indicate an error occurred
 
-def find_msg_id(index_id: int, img_id: int, prefix_path: str, name:str = 'chat.db'):
+def find_msg_id(index_id: int, img_id: int, prefix_path: str, name:str = CHAT_DB_NAME):
     path_to_db = prefix_path + name
     conn = sqlite3.connect(path_to_db)
     cursor = conn.cursor()
@@ -152,8 +175,7 @@ def find_msg_id(index_id: int, img_id: int, prefix_path: str, name:str = 'chat.d
     else:
         return None
     
-
-def add_index_record(index_data, prefix_path: str, name:str = 'chat.db'):
+def add_index_record(index_data, prefix_path: str, name:str = CHAT_DB_NAME):
     try:
         path_to_db = prefix_path + name
         conn = sqlite3.connect(path_to_db)
@@ -166,13 +188,13 @@ def add_index_record(index_data, prefix_path: str, name:str = 'chat.db'):
             VALUES (?, ?, ?, ?, ?, ?, ?)
         '''
         cursor.execute(insert_query, (
-            index_data['index_id'],
-            index_data['index_name'],
-            index_data['index_size'],
-            index_data['max_size'],
-            index_data['nfeatures'],
-            index_data['desc_size'],
-            index_data['desc_name']
+            index_data.index_id,
+            index_data.index_name,
+            index_data.index_size,
+            index_data.max_size,
+            index_data.nfeatures,
+            index_data.desc_size,
+            index_data.desc_name,
         ))
 
         conn.commit()
@@ -183,7 +205,7 @@ def add_index_record(index_data, prefix_path: str, name:str = 'chat.db'):
         print(f"SQLite error: {e}")
         return False
 
-def get_index_triplets(prefix_path: str, name:str = 'chat.db'):
+def get_index_triplets(prefix_path: str, name:str = CHAT_DB_NAME):
     try:
         path_to_db = prefix_path + name
         conn = sqlite3.connect(path_to_db)
@@ -204,7 +226,7 @@ def get_index_triplets(prefix_path: str, name:str = 'chat.db'):
         print(f"SQLite error: {e}")
         return None  # Return None to indicate an error occurred
 
-def update_index_size(index_id:int, add_value:int, prefix_path: str, name:str = 'chat.db'):
+def update_index_size(index_id:int, add_value:int, prefix_path: str, name:str = CHAT_DB_NAME):
     path_to_db = prefix_path + name
     try:
         # Connect to the SQLite database
@@ -232,8 +254,7 @@ def update_index_size(index_id:int, add_value:int, prefix_path: str, name:str = 
         print("SQLite error:", e)
         return False  # Error
 
-
-def get_last_index_data(prefix_path: str, name:str = 'chat.db'):
+def get_last_index_data(prefix_path: str, name:str = CHAT_DB_NAME):
     path_to_db = prefix_path + name
     try:
         # Connect to the SQLite database
@@ -261,6 +282,29 @@ def get_last_index_data(prefix_path: str, name:str = 'chat.db'):
         print("SQLite error:", e)
         return None  # Error or no data found
 
+def does_index_exist(index_id, prefix_path: str, name:str = CHAT_DB_NAME):
+    path_to_db = prefix_path + name
+    conn = None
+    try:
+        # Connect to the SQLite database
+        conn = sqlite3.connect(path_to_db)
+        cursor = conn.cursor()
+
+        # Execute a SELECT query to check if the record exists
+        cursor.execute("SELECT 1 FROM indexes WHERE index_id = ?", (index_id,))
+
+        # Fetch one row (if exists)
+        record = cursor.fetchone()
+
+        return record is not None
+
+    except sqlite3.Error as e:
+        print(f"SQLite error: {e}")
+        return False
+    finally:
+        # Close the database connection
+        if conn:
+            conn.close()
 
 def read_image_data_batch(database_path, batch_size, offset=0):
     try:
@@ -287,8 +331,7 @@ def read_image_data_batch(database_path, batch_size, offset=0):
         print(f"SQLite error: {e}")
         return None, None, None
     
-def get_context_by_chat_id(chat_id,
-                           database_path:str = PATH_TO_GENERAL_DB + GENERAL_DB_NAME):
+def get_context_by_chat_id(chat_id, database_path:str = PATH_TO_GENERAL_DB + GENERAL_DB_NAME):
     try:
         connection = sqlite3.connect(database_path)
         cursor = connection.cursor()
@@ -331,3 +374,39 @@ def add_context_to_db(context: ctx.Context, database_path:str = PATH_TO_GENERAL_
 
     except sqlite3.Error as e:
         print(f"SQLite error: {e}")
+
+def get_list_chats(prefix_path: str, name:str = GENERAL_DB_NAME):
+    path_to_db = prefix_path + name
+    conn = None
+    try:
+        # Connect to the SQLite database
+        conn = sqlite3.connect(path_to_db)
+        cursor = conn.cursor()
+
+        # Execute a SELECT query to retrieve all chat_path records
+        cursor.execute("SELECT chat_path FROM context")
+
+        # Fetch all records
+        chat_paths = cursor.fetchall()
+
+        # Extract chat paths from the result
+        chat_paths = [record[0] for record in chat_paths]
+
+        return chat_paths
+
+    except sqlite3.Error as e:
+        print(f"SQLite error: {e}")
+        return []
+    finally:
+        # Close the database connection
+        if conn:
+            conn.close()
+
+def get_last_index_data_for_all(prefix_path: str):
+    all_index_data = []
+    chat_folder_list =  get_list_chats(prefix_path)
+    for chat_frolder in chat_folder_list:
+        index = get_last_index_data( chat_frolder )
+        all_index_data.append( (chat_frolder, index) )
+
+    return all_index_data

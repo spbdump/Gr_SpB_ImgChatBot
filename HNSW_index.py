@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 import nmslib
 
+
 MIN_FEATURES = 700
 MAX_INDEX_SIZE = 1500
 SIFT_DESC_SIZE = 128
@@ -64,6 +65,9 @@ def load_index(path):
 
     return index
 
+def create_index():
+    index = nmslib.init(method='hnsw', space='l2')
+    return index
 # # Build the HNSW index
 # def build_hnsw_index():
 #     global BATCH_SIZE
@@ -183,13 +187,7 @@ def get_neighbors_desc_indexes(index, q_desc: np.ndarray, k=70):
 
     return neighbors_data[0]
 
-def add_desc_to_index(path_to_index, desc: np.ndarray, id:int):
-    index = nmslib.init(method='hnsw', space='l2')
-
-    if os.path.exists(path_to_index):
-        logger.info("Index file %s already exist", path_to_index)
-        logger.info("Load index %s", path_to_index)
-        index.loadIndex(path_to_index)
+def add_desc_to_index(path_to_index, desc: np.ndarray, id:int, index):
 
     logger.info("Add data point tp index: %s", path_to_index)
     index.addDataPoint(id, desc.reshape(-1))
@@ -269,3 +267,17 @@ def create_empty_index( path_to_index:str ):
 
     index.saveIndex(path_to_index, save_data=False)
     logger.info("Save index to %s", path_to_index)
+
+
+def add_data_batch(prefix_path:str, index_name:str, index_size, data:np.ndarray):
+    path_to_index = prefix_path + index_name
+
+    index =  nmslib.init(method='hnsw', space='l2')
+    if os.path.exists(path_to_index):
+        index.loadIndex(path_to_index)
+    
+    ids = list( range(index_size + data.shape[0]) )
+    index.addDataPointBatch(data, ids)
+    
+    index.createIndex(print_progress=True)
+    index.saveIndex(path_to_index, save_data=False)

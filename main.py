@@ -23,6 +23,8 @@ def main():
     if BOT_TOKEN == None:
         logger.error("Can't read bot token env")
         return
+    
+    init_chats_indexes()
 
     app = Application.builder().token(BOT_TOKEN).build()
 

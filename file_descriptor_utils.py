@@ -68,7 +68,7 @@ def read_array_from_file_by_chunks(filename: str, chunk_size: int, cnt_chunks: i
             yield chunk
 
 
-def append_array_with_same_width(file_path, new_array: np.ndarray):
+def append_array_with_same_width(file_path: str, new_array: np.ndarray):
     """
     Appends a new NumPy array with the same width to an existing file.
     

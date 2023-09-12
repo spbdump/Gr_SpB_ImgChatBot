@@ -19,3 +19,8 @@ git clone --recursive https://github.com/skvark/opencv-python.git
 cd opencv-python
 export CMAKE_ARGS="-DOPENCV_ENABLE_NONFREE=ON"
 python setup.py bdist_wheel
+
+## Hardvare requirements:
+RAM 1gb or 512mb - tveakable option
+solid memory ~ 1gb per 3000 images
+proc intel-seleron

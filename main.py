@@ -1,26 +1,37 @@
-import cv2
-import img_proccessing
+import os
+
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    filters,
+)
+
+import commands
+import handlers
+import index as rn_index
+
+import logging
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def main():
 
-    print("Check base functionality")
-    path = './test_images/'
-    img2 = cv2.imread(path+'photo_2023-02-09_02-17-55.jpg')
-    img1 = cv2.imread(path+'photo_2023-02-09_02-17-55_copy.jpg')
-    img3 = cv2.imread(path+'photo_2023-02-08_19-24-07.jpg ')
-    
-    # Check if the image was loaded successfully
-    if img2 is None:
-        print("Error: Could not load the image.")
+    BOT_TOKEN = os.environ.get('BOT_TOKEN')
+
+    if BOT_TOKEN == None:
+        logger.error("Can't read bot token env")
         return
+    
+    rn_index.init_runtime_chat_indexes()
 
-    print("Is same imgs: ", img_proccessing.compare_images_sift(img1, img2) )
-    print("Is same imgs: ", img_proccessing.compare_images_sift(img1, img3) )
+    app = Application.builder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("tits", commands.tits))
+    app.add_handler(MessageHandler(filters.PHOTO, handlers.receive_tits_or_cats_v2))
 
-    # Show the image
-    # cv2.imshow('image', img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    app.run_polling()
 
 
 if __name__ == "__main__":

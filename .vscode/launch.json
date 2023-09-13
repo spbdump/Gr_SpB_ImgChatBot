@@ -1,0 +1,46 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Current Test File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+            }
+        },
+        {
+            "name": "Python: Debug pytest",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/.venv/bin/pytest",  // Replace with your virtual environment path to pytest
+            "args": [
+                // "-k",
+                "${file}"  // Replace with your test file path
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "stopOnEntry": false,
+            "justMyCode": false,
+            "redirectOutput": true,
+            "showReturnValue": true
+        }
+    ]
+}

@@ -1,3 +1,14 @@
-__*
-venv
+__pycache__
+.venv*
 test_images
+*/photos/photo_*
+grbrt_spb
+tmp_photos
+new_photos
+indexies
+.env
+*src_imgs
+descriptors
+*.db
+*.bin
+*.npy

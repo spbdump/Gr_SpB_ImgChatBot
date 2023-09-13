@@ -67,7 +67,9 @@ def load_index(path):
 
 def create_index():
     index = nmslib.init(method='hnsw', space='l2')
+    index.createIndex(print_progress=False)
     return index
+
 # # Build the HNSW index
 # def build_hnsw_index():
 #     global BATCH_SIZE

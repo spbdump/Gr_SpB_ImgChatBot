@@ -1,11 +1,10 @@
 import numpy as np
+import file_descriptor_utils as fd_u
+import sqlite_db_utils as sq3_u
+import img_proccessing as imp
 from HNSW_index import create_index, add_data_batch
-from file_descriptor_utils import append_array_with_same_width
-from sqlite_db_utils import update_index_size, \
-                            save_runtime_img_data, \
-                            add_index_record, \
-                            get_last_index_data_for_all, \
-                            does_index_exist
+
+MAX_RUNTIME_INDEX_SIZE = 10
 
 class Index:
     def __init__(self, index_id=0, index_size=0, 
@@ -20,7 +19,6 @@ class Index:
         self.desc_name = desc_name if desc_name != "" else self.generate_desc_name()
 
     def generate_desc_name(self):
-        index_id = self.index_id if self.index_id == 0 else self.index_id + 1
         return (
             f'desc_id_{self.index_id}'
             f'_sz_{self.index_size}'
@@ -58,13 +56,18 @@ class RuntimeIndex(Index):
     #              max_size=0, nfeatures=0, desc_size=128,
     #              desc_name="", chat_path=""):
     #     super().__init__(index_id, index_name, index_size, max_size, nfeatures, desc_size, desc_name)
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, index:Index = Index(), k:int = 20):
+        super().__init__(index.index_id, index.index_size, 
+                         index.max_size, index.nfeatures,
+                         index.desc_size, index.index_name,
+                         index.desc_name)
         self.index_data = np.empty((0, self.nfeatures*self.desc_size), dtype=np.float32 )
         self.index = create_index()
-        self.max_runtime_size = 10 # must be integer divisible with self.max_size
+        # must be integer divisible with self.max_size
+        # make it as 1% of self.max_size ??
+        self.max_runtime_size = MAX_RUNTIME_INDEX_SIZE
         self.img_data = []
-        self.k = 20
+        self.k = k
     
     def get_t_msg_id(self, img_id):
         msg_id = self.img_data[img_id].t_msg_id
@@ -76,6 +79,16 @@ class RuntimeIndex(Index):
         neighbors_data = self.index.knnQuery(query_data.reshape(-1), k=self.k)
         return neighbors_data[0]
     
+    def find_image(self, q_desc):
+        res_img_id_list = []
+        desc_idx_list = self.knn_query(q_desc)
+        for idx in desc_idx_list:
+            desc = self.index_data[idx]
+            in_desc = desc.reshape(self.nfeatures, self.desc_size)[:self.nfeatures]
+            if imp.compare_sift_descriprtors(q_desc, in_desc, 0.8) == True:
+                res_img_id_list.append( idx )
+        return res_img_id_list
+
     def add_data_point(self, data: np.ndarray, img_name:str, t_msg_id:int):
         id = self.index_data.shape[0]
         self.index_data = np.vstack( (self.index_data, data) )
@@ -95,19 +108,19 @@ class RuntimeIndex(Index):
             
         # should be before updating index_size because it used in calc ids
         add_data_batch(prefix_path, self.index_name, self.index_size, self.index_data)
-        save_runtime_img_data(self.index_id, self.index_size, self.img_data, prefix_path)
+        sq3_u.save_runtime_img_data(self.index_id, self.index_size, self.img_data, prefix_path)
         #
 
-        append_array_with_same_width(prefix_path + self.desc_name, self.index_data)
+        fd_u.append_array_with_same_width(prefix_path + self.desc_name, self.index_data)
         
         # to save correct index_size value to db
         # if there no such record
         self.index_size += data_size
-        is_exist = does_index_exist(self.index_id, prefix_path)
+        is_exist = sq3_u.does_index_exist(self.index_id, prefix_path)
         if not is_exist:
-            add_index_record(self, prefix_path)
+            sq3_u.add_index_record(self, prefix_path)
         else:
-            update_index_size(self.index_id, data_size, prefix_path)
+            sq3_u.update_index_size(self.index_id, data_size, prefix_path)
             
 
         # clear runtime index 
@@ -121,7 +134,7 @@ class RuntimeIndex(Index):
             self.desc_name = self.generate_desc_name()
             self.index_name = self.generate_index_name()
             # add arrecord of new empty index
-            add_index_record(self, prefix_path)
+            sq3_u.add_index_record(self, prefix_path)
 
         # try:
         #     with open(path_to_file, 'wb') as file:
@@ -136,13 +149,13 @@ class RuntimeIndex(Index):
 CHAT_ID_INDEX_MAP = {}
 
 def init_runtime_chat_indexes(prefix_path: str = './'):
-    data = get_last_index_data_for_all(prefix_path)
-    for chat_id, index_data in data:
-        CHAT_ID_INDEX_MAP[chat_id] = RuntimeIndex(index_data)
+    data = sq3_u.get_last_index_data_for_all(prefix_path)
+    for chat_id, index in data:
+        CHAT_ID_INDEX_MAP[chat_id] = RuntimeIndex(index)
 
 def add_runtime_index(chat_id, index_id, max_size, nfeatures):
-    #index = Index(index_id=index_id, max_size=max_size, nfeatures=nfeatures)
-    CHAT_ID_INDEX_MAP[chat_id] = RuntimeIndex(index_id=index_id, max_size=max_size, nfeatures=nfeatures)
+    index = Index(index_id=index_id, max_size=max_size, nfeatures=nfeatures)
+    CHAT_ID_INDEX_MAP[chat_id] = RuntimeIndex(index)
 
 def get_runtime_index(chat_id) -> RuntimeIndex : 
     return CHAT_ID_INDEX_MAP.get(chat_id, None)

@@ -83,7 +83,7 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
     file = await context.bot.get_file(file_id)
     await file.download_to_drive(path_to_img)
 
-    res, img_desc = bot_general.find_image_in_indexes(path_to_img, chat_path, nfeatures)
+    res, img_desc = bot_general.find_image_in_indexes(path_to_img, chat_path, m_chat_id, nfeatures)
 
     if img_desc.shape[0] < nfeatures:
         logger.info("Image has %d features, should be %d", img_desc.shape[0], nfeatures)
@@ -93,17 +93,14 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
     if len(res) == 0:
         message_id = update.message.id
         bot_general.update_index( ctx, img_desc, img_name, message_id )
-
-        # move this impl to update_index
-        # bot_general.save_img_data(chat_path, img_name, message_id)
-
         logging.info("New image was saved to database")
         #await update.message.reply_text(text="Image was indexed!\n")
         return
 
     if len(res) == 1:
-        img_id, index_id = res[0]
-        message_id = bot_general.get_message_id(img_id, index_id, chat_path)
+        index_id, img_id = res[0]
+        img_id = img_id[0]
+        message_id = bot_general.get_message_id(chat_path,m_chat_id, img_id, index_id)
 
         # add link to existed post
         await update.message.reply_text(text="Предупреждение!\nYou got -rep!")

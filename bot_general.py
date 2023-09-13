@@ -13,7 +13,7 @@ from sqlite_db_utils import store_img_data, get_last_image_data, \
                             get_index_triplets, get_last_index_data, \
                             get_context_by_chat_id
 
-from index import get_runtime_index
+import index as rni
 
 from context import Context
 
@@ -21,8 +21,6 @@ import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
-
 
 def find_image_in_index(prefix_path, index_name, desc_name, q_desc, nfeatures:int =MIN_FEATURES):
     descriptors_file = prefix_path + desc_name
@@ -81,8 +79,8 @@ def find_image_in_indexes(path_to_img, chat_path, chat_id, nfeatures:int =MIN_FE
         if len(img_id_list):
             res_ids.append((index_id, img_id_list))
         
-    runtime_index = get_runtime_index(chat_id)
-    rt_img_id_list = runtime_index.knn_query(q_desc)
+    runtime_index = rni.get_runtime_index(chat_id)
+    rt_img_id_list = runtime_index.find_image(q_desc)
     if len(rt_img_id_list):
         res_ids.append((runtime_index.RUNTIME_INDEX_ID, rt_img_id_list))
 
@@ -115,7 +113,7 @@ def update_index(ctx: Context, desc, img_name, t_msg_id):
     if desc.shape[0] > ctx.nfeatures:
         desc = desc[:ctx.nfeatures]
 
-    index = get_runtime_index(ctx.chat_id)
+    index = rni.get_runtime_index(ctx.chat_id)
     index.add_data_point(desc.reshape(-1), img_name, t_msg_id)
     if index.is_fullfilled():
         index.dump(ctx.chat_path)
@@ -130,8 +128,8 @@ def save_img_data(prefix_path: str, img_name: str, message_id: int):
         logger.error("Can't retrive index data")
         return
 
-    index_size = index_data["index_size"]
-    index_id = index_data["index_id"]
+    index_size = index_data.index_size
+    index_id = index_data.index_id
     img_id = index_size - 1 # -1 if size updated before
 
     img_data = {
@@ -144,8 +142,8 @@ def save_img_data(prefix_path: str, img_name: str, message_id: int):
     store_img_data([img_data], prefix_path )
 
 
-def get_message_id(prefix_path:str, img_id: int, index_id: int):
-    index = get_runtime_index(chat_id)
+def get_message_id(prefix_path:str, chat_id:int,  img_id: int, index_id: int):
+    index = rni.get_runtime_index(chat_id)
     if index_id == index.RUNTIME_INDEX_ID:
         msg_id = index.get_t_msg_id(img_id)
         return msg_id
@@ -163,7 +161,7 @@ def get_next_img_id(prefix_path:str):
         logger.error("Can't retrive index data")
         return
 
-    index_size = index_data["index_size"]
+    index_size = index_data.index_size
     return index_size
 
 def get_last_index_id(prefix_path:str):
@@ -173,7 +171,7 @@ def get_last_index_id(prefix_path:str):
         logger.error("Can't retrive index data")
         return
 
-    index_id = index_data["index_id"]
+    index_id = index_data.index_id
     return index_id
 
 def generate_next_img_id(prefix_path:str):
@@ -182,7 +180,7 @@ def generate_next_img_id(prefix_path:str):
     if img_data == None:
         return 0
 
-    image_name = img_data["img_name"]
+    image_name = img_data.img_name
     match = re.search(r'photo_(\d+)', image_name)
 
     image_id = -1

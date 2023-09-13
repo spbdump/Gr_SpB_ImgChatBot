@@ -9,6 +9,7 @@ from telegram.ext import (
 
 import commands
 import handlers
+import index as rn_index
 
 import logging
 
@@ -24,10 +25,9 @@ def main():
         logger.error("Can't read bot token env")
         return
     
-    init_chats_indexes()
+    rn_index.init_runtime_chat_indexes()
 
     app = Application.builder().token(BOT_TOKEN).build()
-
     app.add_handler(CommandHandler("tits", commands.tits))
     app.add_handler(MessageHandler(filters.PHOTO, handlers.receive_tits_or_cats_v2))
 

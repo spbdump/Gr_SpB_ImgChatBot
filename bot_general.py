@@ -1,26 +1,32 @@
 import os
 import re
+import shutil
 
 from img_proccessing import compare_sift_descriprtors, get_image_data
 from HNSW_index import load_index, get_neighbors_desc_indexes, \
                        MIN_FEATURES
 
-from file_descriptor_utils import append_array_with_same_width, \
-                                  read_specific_rows_from_binfile
+from file_descriptor_utils import read_specific_rows_from_binfile
 
 from sqlite_db_utils import store_img_data, get_last_image_data, \
-                            find_msg_id, \
+                            find_msg_id, add_ctx_record, \
                             get_index_triplets, get_last_index_data, \
-                            get_context_by_chat_id
+                            get_context_by_chat_id, delete_ctx_record, \
+                            create_image_table, create_index_table, \
+                            create_ctx_table, \
+                            update_PATH_TO_GENERAL_DB
 
-import index as rni
-
+import runtime_index as rni
 from context import Context
 
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+
+def update_DBPATH(path:str):
+    update_PATH_TO_GENERAL_DB(path)
 
 def find_image_in_index(prefix_path, index_name, desc_name, q_desc, nfeatures:int =MIN_FEATURES):
     descriptors_file = prefix_path + desc_name
@@ -57,7 +63,6 @@ def find_image_in_index(prefix_path, index_name, desc_name, q_desc, nfeatures:in
 
     return res_img_id_list
 
-
 def find_image_in_indexes(path_to_img, chat_path, chat_id, nfeatures:int =MIN_FEATURES):
     img_data = get_image_data(path_to_img, nfeatures)
     q_desc = img_data.descriptor
@@ -86,61 +91,18 @@ def find_image_in_indexes(path_to_img, chat_path, chat_id, nfeatures:int =MIN_FE
 
     return res_ids, q_desc
 
-def generate_new_index_data(prefix_path: str, index_data):
-    # index_data = get_last_index_data( prefix_path )
-
-    nfeatures = index_data["nfeatures"]
-    desc_size = index_data["desc_size"]
-    index_size = 0
-    max_size = index_data["max_size"]
-    i = index_data["index_id"] + 1
-
-    index_name = f'index_id_{i}_sz_{max_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.bin'
-    desc_name =  f'desc_id_{i}_sz_{max_size}_nfeat_{nfeatures}_desc_sz_{desc_size}.npy'
-
-    index_rec = {
-            "index_name": index_name,
-            "desc_name" : desc_name,
-            "index_id"  : i,
-            "max_size"  : max_size,
-            "nfeatures" : nfeatures,
-            "desc_size" : desc_size,
-            "index_size": index_size,
-        }
-    return index_rec
-
-def update_index(ctx: Context, desc, img_name, t_msg_id):
+# use separate chat_path variable to be able setup initial data path
+# without updatating general bot context table
+def update_index(ctx: Context, chat_path:str, desc, img_name:str, t_msg_id:int):
     if desc.shape[0] > ctx.nfeatures:
         desc = desc[:ctx.nfeatures]
 
     index = rni.get_runtime_index(ctx.chat_id)
     index.add_data_point(desc.reshape(-1), img_name, t_msg_id)
     if index.is_fullfilled():
-        index.dump(ctx.chat_path)
+        index.dump(chat_path)
 
     return True
-
-
-def save_img_data(prefix_path: str, img_name: str, message_id: int):
-    index_data = get_last_index_data( prefix_path )
-
-    if index_data == None:
-        logger.error("Can't retrive index data")
-        return
-
-    index_size = index_data.index_size
-    index_id = index_data.index_id
-    img_id = index_size - 1 # -1 if size updated before
-
-    img_data = {
-        "index_id": index_id,
-        "t_msg_id": message_id,
-        "img_id": img_id,
-        "img_name": img_name,
-    }
-
-    store_img_data([img_data], prefix_path )
-
 
 def get_message_id(prefix_path:str, chat_id:int,  img_id: int, index_id: int):
     index = rni.get_runtime_index(chat_id)
@@ -191,3 +153,36 @@ def generate_next_img_id(prefix_path:str):
         logger.debug("Image ID not found in the image name")
 
     return image_id + 1
+
+def on_remove_bot(chat_id:int, prefix_path:str):
+    # remove runtime index
+    rni.delete_runtime_index(chat_id)
+    # remove record from context table
+    chat_folder = delete_ctx_record(chat_id)
+    if chat_folder == None:
+        logger.error("Can't find chat folder")
+        return
+    
+    # remove chat folder
+    path_to_folder = prefix_path + chat_folder
+    shutil.rmtree(path_to_folder)
+    logger.info("Erase chat data completed")
+
+def on_add_bot(chat_id:int, prefix_path:str, chat_name:str):
+    # create runtime index
+    rni.add_runtime_index(chat_id, 0, 1000, 800)
+    # add record to context table
+    path_to_chat = '/'+chat_name+'/'
+    add_ctx_record(chat_id, 800, 128, 1000, path_to_chat)
+    # crate chat.db and tables 
+    os.mkdir(prefix_path + path_to_chat)
+    os.mkdir(prefix_path + path_to_chat + '/tmp/')
+    create_image_table( prefix_path + path_to_chat )
+    create_index_table( prefix_path + path_to_chat )
+
+    logger.info("Creating chat data is complited")
+
+
+def create_general_db():
+    create_ctx_table()
+    logger.debug("General db has been created")

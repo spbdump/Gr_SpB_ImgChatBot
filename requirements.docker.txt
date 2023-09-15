@@ -1,9 +1,11 @@
+setuptools==58.2.0
 aiolimiter==1.1.0
 anyio==3.7.1
 APScheduler==3.10.3
 beautifulsoup4==4.12.2
 cachetools==5.3.1
 certifi==2023.7.22
+pybind11==2.6.1
 charset-normalizer==3.2.0
 distro==1.8.0
 dnspython==2.4.2
@@ -16,11 +18,9 @@ iniconfig==2.0.0
 line-profiler==4.1.1
 nmslib==2.1.1
 numpy==1.25.2
-opencv-python @ file:///home/catogrammer/workdir/Gr_SpB_ImgChatBot/opencv-python/dist/opencv_python-4.8.0.76-cp310-cp310-linux_x86_64.whl
 packaging==23.1
 pluggy==1.2.0
 psutil==5.9.5
-pybind11==2.6.1
 pytest==7.4.0
 python-telegram-bot==20.4
 pytz==2023.3

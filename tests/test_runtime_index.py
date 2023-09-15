@@ -1,4 +1,4 @@
-import index
+import runtime_index
 import bot_general
 import context
 import utils
@@ -14,7 +14,7 @@ def main():
     max_size = 20
     chat_id = -1
     chat_path = './tests/'
-    index.add_runtime_index(chat_id, 0, max_size, nfeatures)
+    runtime_index.add_runtime_index(chat_id, 0, max_size, nfeatures)
     sqlite_db_utils.create_index_table(chat_path)
     sqlite_db_utils.create_iamge_table(chat_path)
 

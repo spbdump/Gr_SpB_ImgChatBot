@@ -1,0 +1,23 @@
+version: "3.7"
+
+services:
+    uniq_img_bot:
+        build: .
+        container_name: uniq_img_bot_cat_and_tits
+        image: uniq_img_bot:0.0.1
+        restart: always
+        env_file:
+            - .env.docker
+        volumes:
+            - bot-data:/bot/data
+        deploy:
+            resources:
+                limits:
+                    memory: 3072M
+volumes:
+    bot-data:
+        driver: local
+        driver_opts:
+            type: none
+            o: bind
+            device: ~/BOT_VOLUME/

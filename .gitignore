@@ -6,9 +6,10 @@ grbrt_spb
 tmp_photos
 new_photos
 indexies
-.env
+.env*
 *src_imgs
 descriptors
 *.db
 *.bin
 *.npy
+.pytest_cache

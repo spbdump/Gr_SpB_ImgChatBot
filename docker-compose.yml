@@ -1,0 +1,17 @@
+version: "3.7"
+
+services:
+    uniq_img_bot:
+        build: .
+        container_name: uniq_img_bot_cat_and_tits
+        image: uniq_img_bot:0.0.1
+        restart: always
+        ports:
+            - "5005:5005"
+        volumes:
+            - bot-data:/bot/data
+        environment:
+            - BOT_TOKEN
+            - VOLUME_PATH
+    volumes:
+        bot-data:

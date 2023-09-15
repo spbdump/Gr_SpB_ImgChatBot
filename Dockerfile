@@ -22,6 +22,7 @@ COPY bot.py handlers.py commands.py \
      context.py HNSW_index.py index.py \
      file_descriptor_utils.py image_d.py \
      img_proccessing.py sqlite_db_utils.py \
-     random_name.py bot_general.py /bot/sources/
+     random_name.py bot_general.py img_data.py \ 
+     runtime_index.py     /bot/sources/
 
 CMD [ "python", "/bot/sources/bot.py" ]

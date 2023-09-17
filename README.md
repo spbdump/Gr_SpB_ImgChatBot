@@ -24,3 +24,9 @@ python setup.py bdist_wheel
 RAM 1gb or 512mb - tveakable option
 solid memory ~ 1gb per 3000 images
 proc intel-seleron
+
+
+# Research
+jupyter lab
+
+TODO: switch to FLAAN computor!!

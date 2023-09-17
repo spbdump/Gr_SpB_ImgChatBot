@@ -13,3 +13,5 @@ descriptors
 *.bin
 *.npy
 .pytest_cache
+.exp.venv3.10
+.ipynb_checkpoints

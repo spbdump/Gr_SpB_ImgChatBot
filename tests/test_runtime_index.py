@@ -16,7 +16,7 @@ def main():
     chat_path = './tests/'
     runtime_index.add_runtime_index(chat_id, 0, max_size, nfeatures)
     sqlite_db_utils.create_index_table(chat_path)
-    sqlite_db_utils.create_iamge_table(chat_path)
+    sqlite_db_utils.create_image_table(chat_path)
 
     prefix_img_path = PATH_TO_IMGS
     list_imgs = utils.get_image_files( prefix_img_path )
@@ -37,7 +37,7 @@ def main():
             img_desc = img_desc[:nfeatures]
 
         saved_img_list.append(path_to_img)
-        bot_general.update_index( ctx, img_desc, img_name, -1 )
+        bot_general.update_index( ctx, './', img_desc, img_name, -1 )
 
     path_to_img = saved_img_list[6]
     res, img_desc = bot_general.find_image_in_indexes(path_to_img, chat_path, chat_id, nfeatures)

@@ -30,3 +30,7 @@ proc intel-seleron
 jupyter lab
 
 TODO: switch to FLAAN computor!!
+
+Helpful techniques:
+    Index Pruning
+    Cluster-Based Indexing

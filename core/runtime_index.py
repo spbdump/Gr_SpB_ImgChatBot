@@ -11,10 +11,6 @@ MAX_RUNTIME_INDEX_SIZE = 10
 
 class RuntimeIndex(Index):
     RUNTIME_INDEX_ID = -1
-    # def __init__(self, index_id=0, index_name="", index_size=0,
-    #              max_size=0, nfeatures=0, desc_size=128,
-    #              desc_name="", chat_path=""):
-    #     super().__init__(index_id, index_name, index_size, max_size, nfeatures, desc_size, desc_name)
     def __init__(self, index:Index = Index(), k:int = 20):
         super().__init__(index.index_id, index.index_size, 
                          index.max_size, index.nfeatures,
@@ -68,8 +64,6 @@ class RuntimeIndex(Index):
         # should be before updating index_size because it used in calc ids
         add_data_batch(prefix_path, self.index_name, self.index_size, self.index_data)
         sq3_u.save_runtime_img_data(self.index_id, self.index_size, self.img_data, prefix_path)
-        #
-
         fd_u.append_array_with_same_width(prefix_path + self.desc_name, self.index_data)
         
         # to save correct index_size value to db
@@ -80,7 +74,6 @@ class RuntimeIndex(Index):
             sq3_u.add_index_record(self, prefix_path)
         else:
             sq3_u.update_index_size(self.index_id, data_size, prefix_path)
-            
 
         # clear runtime index 
         self.index_data = np.empty((0, self.nfeatures*self.desc_size), dtype=np.float32 )

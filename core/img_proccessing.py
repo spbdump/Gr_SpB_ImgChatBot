@@ -11,9 +11,6 @@ logger = logging.getLogger(__name__)
 
 NFEATURES = 1000
 
-img_proc = {}
-
-
 def compare_images_sift(img1, img2):
     sift = cv2.SIFT_create(nfeatures=NFEATURES)
 
@@ -61,44 +58,6 @@ def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percen
     else:
         return False
 
-def poces_similar_sift_descriprors(query_descriptor):
-    logging.info("Start search similar inexies")
-    desc_list = HNSW_index.get_neighbors_descriptors(query_descriptor)
-    
-    logging.info("Match all neighbors descriptors")
-    res = []
-    for desc in desc_list:
-        db_desc = np.array(desc["descriptor"], dtype=np.float32)
-        if compare_sift_descriprtors(query_descriptor, db_desc) == True:
-            res.append(desc)
-
-    return res
-
-def poces_similar_sift_descriprors_brootforce(query_descriptor):
-    desc_list = db_utils.retrive_all_descriptors()
-
-    logger.info("Got %d descriptors", len(desc_list))
-    res = []
-    for desc in desc_list:
-        if compare_sift_descriprtors(query_descriptor, np.array(desc["descriptor"], dtype=np.float32)) == True:
-            logger.info("Got some match")
-            res.append(desc)
-
-    return res
-
-def poces_similar_sift_descriprors_ann_index(query_descriptor):
-    desc_list = db_utils.retrive_ann_index_descriptors_nms(query_descriptor)
-
-    logger.info("Got %d descriptors", len(desc_list))
-    # print(desc_list)
-    res = []
-    for desc in desc_list:
-        if compare_sift_descriprtors(query_descriptor, desc[0]) == True:
-            logger.info("Got some match")
-            res.append(desc)
-
-    return res
-
 def get_image_data(path_to_img, nfeatures:int =NFEATURES) -> image_d.ImageData:
 
     img = cv2.imread(path_to_img, cv2.IMREAD_GRAYSCALE)
@@ -120,18 +79,8 @@ def get_image_data(path_to_img, nfeatures:int =NFEATURES) -> image_d.ImageData:
 
 
 def try_add_preprocess(img, detector, nfeatures):
-    # Case 3: Image Resizing (Creating an Image Pyramid)
-    # width = int(img.shape[1] * 1.5)
-    # height = int(img.shape[0] * 1.5)
-    # scaled_img = cv2.resize(img, (width, height))
-
-    # logger.debug("Preprocess: scale image")
-    # kps, desc = detector.detectAndCompute(scaled_img, None)
-
-    enhanced_image = img
-    # if desc.shape[0] < nfeatures:
     logger.debug("Preprocess: histogram equalization")
-    enhanced_image = cv2.equalizeHist(scaled_img)
+    enhanced_image = cv2.equalizeHist(img)
     kps, desc = detector.detectAndCompute(enhanced_image, None)
 
     blurred_image = enhanced_image

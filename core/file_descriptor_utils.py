@@ -83,33 +83,6 @@ def append_array_with_same_width(file_path: str, new_array: np.ndarray):
 
     logger.info("Images data was saved to file")
 
-
-def get_desc_batch(batch_offset:int, batch_size:int, raw_data:bool = False):
-
-    descriptors = read_array_from_file_by_chunks()
-    if len(descriptors) == 0:
-        return []
-
-    first_nfeatures = NFEATURES
-    if not raw_data:
-        np_descriptors = np.empty((0, first_nfeatures*128))
-        for desc in descriptors:
-            np_desc_nf = np.array(desc["descriptor"], dtype=np.float32)[:first_nfeatures]
-            padded_matrix = np_desc_nf
-
-            if np_desc_nf.shape[0] < first_nfeatures:
-                n_rows = first_nfeatures - np_desc_nf.shape[0]
-                padded_matrix = np.pad(np_desc_nf, pad_width=((0, n_rows), (0, 0)), mode='constant')
-
-            np_desc = padded_matrix.reshape(1, -1)
-            np_descriptors = np.concatenate((np_descriptors, np_desc), axis=0)
-
-        logger.info("Got converted descriptors data from 'image_data_collection'")
-        return np_descriptors
-
-    logger.info("Got raw image data from 'image_data_collection'")
-    return descriptors
-
 def write_images_list_to_file(file_path, array_of_strings):
     with open(file_path, "w") as file:
         for index, element in enumerate(array_of_strings):

@@ -5,7 +5,7 @@ import utils
 import nmslib
 import numpy as np
 
-import HNSW_index
+import core.HNSW_index as HNSW_index
 
 PATH_TO_IMGS = './grbrt_spb/photos/'
 

@@ -2,8 +2,8 @@ import cv2
 import os
 import numpy as np
 
-import image_d
-import HNSW_index
+import model.image_d as image_d
+import core.HNSW_index as HNSW_index
 
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)

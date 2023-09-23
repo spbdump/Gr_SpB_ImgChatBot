@@ -1,11 +1,11 @@
 import numpy as np
-import img_proccessing
+import core.img_proccessing as img_proccessing
 
 import json
 import re
 import os
 
-from sqlite_db_utils import store_img_data
+from core.sqlite_db_utils import store_img_data
 
 # Enable logging
 import logging

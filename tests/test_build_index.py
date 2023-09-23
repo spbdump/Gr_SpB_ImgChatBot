@@ -1,6 +1,6 @@
 import os
-import file_descriptor_utils
-import HNSW_index
+import core.file_descriptor_utils as file_descriptor_utils
+import core.HNSW_index as HNSW_index
 
 import logging
 

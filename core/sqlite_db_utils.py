@@ -1,9 +1,9 @@
 import sqlite3
 from datetime import datetime
 
-import context as ctx
-from index import Index
-from img_data import ImageData
+import model.context as ctx
+from model.index import Index
+from model.img_data import ImageData
 
 index_table_name = 'indexes'
 

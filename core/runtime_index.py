@@ -1,10 +1,10 @@
 import numpy as np
-import file_descriptor_utils as fd_u
-import sqlite_db_utils as sq3_u
-import img_proccessing as imp
-from HNSW_index import create_index, add_data_batch
-from index import Index
-from img_data import ImageData
+import core.file_descriptor_utils as fd_u
+import core.sqlite_db_utils as sq3_u
+import core.img_proccessing as imp
+from core.HNSW_index import create_index, add_data_batch
+from model.index import Index
+from model.img_data import ImageData
 
 MAX_RUNTIME_INDEX_SIZE = 10
 

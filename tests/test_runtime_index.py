@@ -1,8 +1,8 @@
-import runtime_index
+import core.runtime_index as runtime_index
 import bot_general
-import context
+import model.context as context
 import utils
-import sqlite_db_utils
+import core.sqlite_db_utils as sqlite_db_utils
 
 PATH_TO_IMGS = './grbrt_spb/photos/'
 

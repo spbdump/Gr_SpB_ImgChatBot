@@ -1,7 +1,7 @@
-import HNSW_index
-import img_proccessing
-import file_descriptor_utils
-import sqlite_db_utils
+import core.HNSW_index as HNSW_index
+import core.img_proccessing as img_proccessing
+import core.file_descriptor_utils as file_descriptor_utils
+import core.sqlite_db_utils as sqlite_db_utils
 
 import os
 from datetime import datetime

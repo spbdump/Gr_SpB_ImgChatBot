@@ -2,13 +2,13 @@ import os
 import re
 import shutil
 
-from img_proccessing import compare_sift_descriprtors, get_image_data
-from HNSW_index import load_index, get_neighbors_desc_indexes, \
+from core.img_proccessing import compare_sift_descriprtors, get_image_data
+from core.HNSW_index import load_index, get_neighbors_desc_indexes, \
                        MIN_FEATURES
 
-from file_descriptor_utils import read_specific_rows_from_binfile
+from core.file_descriptor_utils import read_specific_rows_from_binfile
 
-from sqlite_db_utils import store_img_data, get_last_image_data, \
+from core.sqlite_db_utils import store_img_data, get_last_image_data, \
                             find_msg_id, add_ctx_record, \
                             get_index_triplets, get_last_index_data, \
                             get_context_by_chat_id, delete_ctx_record, \
@@ -16,8 +16,8 @@ from sqlite_db_utils import store_img_data, get_last_image_data, \
                             create_ctx_table, \
                             update_PATH_TO_GENERAL_DB
 
-import runtime_index as rni
-from context import Context
+import core.runtime_index as rni
+from model.context import Context
 
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

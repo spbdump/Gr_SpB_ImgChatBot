@@ -10,7 +10,7 @@ from telegram.ext import (
 
 import commands
 import handlers
-import runtime_index as rn_index
+import core.runtime_index as rn_index
 import bot_general as bg
 
 import logging

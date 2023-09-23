@@ -1,12 +1,12 @@
 import bot_general
-import context
+import model.context as context
 
 import utils
 
 PATH_TO_IMGS = './grbrt_spb/photos/'
 N_RAND_IMGS = 25
 
-import debug_utils
+import helper.debug_utils as debug_utils
 
 def main():
     nfeatures = 800

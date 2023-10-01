@@ -1,3 +1,11 @@
+from enum import Enum
+
+class DescriptorType(Enum):
+    SIFT = "SIFT"
+    SURF = "SURF"
+    ORB = "ORB"
+    OTHER = "OTHER"
+
 class ImageData:
     def __init__(self, index_id:int, img_id:int, t_msg_id:int, img_name:str):
         self.index_id = index_id

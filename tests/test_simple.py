@@ -1,11 +1,6 @@
 import pytest
 import utils
 
-PATH_TO_IMGS = './grbrt_spb/photos'
-
-@pytest.fixture
-def prefix_path():
-    return PATH_TO_IMGS
     
 
 img_list = ["aa", "bb", "cc", "ca", "cb", "ad", "db"]

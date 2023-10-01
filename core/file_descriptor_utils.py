@@ -138,14 +138,14 @@ def fullfill_desc_file(path_to_dir: str, list_imgs, desc_file: str,
         imgs_kv_data = []
         imgs_data = np.array([], dtype=np.float32).reshape(0, 128*first_nfeatures)
         for img_name in list_imgs[curr_idx:last_idx]:
-            img_data = img_proccessing.get_image_data(path_to_imgs_dir + img_name, first_nfeatures)
+            desc, _ = img_proccessing.get_image_data(path_to_imgs_dir + img_name, first_nfeatures)
 
-            if img_data.descriptor.shape[0] < first_nfeatures:
+            if desc.shape[0] < first_nfeatures:
                 #debug
                 txt_bad_data.write(f'Bad image feature detection: {img_name}' + '\n')
 
                 logger.info("Bad image feature detection: %s", img_name)
-                logger.info("descriptor features len: %s", img_data.descriptor.shape[0])
+                logger.info("descriptor features len: %s", desc.shape[0])
                 bad_img_counter = bad_img_counter + 1
                 continue
 
@@ -164,7 +164,7 @@ def fullfill_desc_file(path_to_dir: str, list_imgs, desc_file: str,
                 "img_name": img_name,
             } )
 
-            desc = img_data.descriptor[:first_nfeatures].reshape(1,-1)
+            desc = desc[:first_nfeatures].reshape(1,-1)
             imgs_data = np.vstack((imgs_data, desc), dtype=np.float32)
             indexed_images = indexed_images + 1
 

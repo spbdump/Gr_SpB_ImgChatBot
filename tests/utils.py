@@ -23,5 +23,5 @@ def get_image_files(directory: str):
     image_files = []
     for filename in os.listdir(directory):
         if filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".png"):
-            image_files.append(filename)
+            image_files.append( directory + filename )
     return image_files

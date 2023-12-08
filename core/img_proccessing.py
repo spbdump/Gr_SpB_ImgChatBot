@@ -22,122 +22,6 @@ class FilterFlags(Enum):
     DENOISE = 8
     RES_ENHANCEMENT = 16
 
-
-def compare_images_sift(img1, img2):
-    sift = cv2.SIFT_create(nfeatures=NFEATURES)
-
-    gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    kp1, des1 = sift.detectAndCompute(gray1, None)
-
-    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    kp2, des2 = sift.detectAndCompute(gray2, None)
-
-    bf = cv2.BFMatcher()
-    matches = bf.knnMatch(des1, des2, k=2)
-
-    good_matches = []
-    for m, n in matches:
-        if m.distance < 0.75 * n.distance:
-            good_matches.append([m])
-
-    # DEBUG
-    # img_matches = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good_matches, None, flags=2)
-    # cv2.imshow('image', img_matches)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-    # print("lenght od good matches: ", len(good_matches), "len matches: ", len(matches))
-
-    if len(good_matches)/len(matches) > 0.9:
-        return True
-    else:
-        return False
-
-def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.85) -> bool:
-    bf = cv2.BFMatcher()
-    matches = bf.knnMatch(desc1, desc2, k=2)
-
-    good_matches = []
-    for m, n in matches:
-        if m.distance < match_percent * n.distance:
-            good_matches.append([m])
-
-    v_match = len(good_matches)/len(matches)
-
-    # print("Match persets: ", v_match,", Distanse: ", math_utils.euclidian_distance(desc1, desc2))
-
-    if v_match > match_percent:
-        return True
-    else:
-        return False
-
-def get_image_data(path_to_img, nfeatures:int =NFEATURES) -> Tuple[np.ndarray, img_d.DescriptorType]:
-
-    img = cv2.imread(path_to_img, cv2.IMREAD_GRAYSCALE)
-    if img is None:
-        logger.info("Can't open image: %s", path_to_img)
-        return np.empty([]), img_d.DescriptorType.SIFT
-
-    width = int(img.shape[1] * 1.5)
-    height = int(img.shape[0] * 1.5)
-    scaled_img = cv2.resize(img, (width, height))
-
-    sift = cv2.SIFT_create(nfeatures=nfeatures, contrastThreshold=0.04, edgeThreshold=10)
-    kps, desc = sift.detectAndCompute(scaled_img, None)
-
-    # if desc.shape[0] < nfeatures:
-    #     desc = try_add_preprocess(img, sift, nfeatures)
-
-    return desc, img_d.DescriptorType.SIFT
-
-def get_image_data_v2(path_to_img, nfeatures:int =NFEATURES, filters=0) -> Tuple[np.ndarray, img_d.DescriptorType]:
-
-    img = cv2.imread(path_to_img, cv2.IMREAD_GRAYSCALE)
-    if img is None:
-        logger.info("Can't open image: %s", path_to_img)
-        return np.empty([]), img_d.DescriptorType.SIFT
-
-    width = int(img.shape[1] * 1.5)
-    height = int(img.shape[0] * 1.5)
-    img = resolution_enhancement(img, width, height)
-
-    sift = cv2.SIFT_create(nfeatures=nfeatures, contrastThreshold=0.04, edgeThreshold=10)
-    _, desc = sift.detectAndCompute(img, None)
-
-    # Check filter flags and apply filters accordingly
-    if desc.shape[0] < nfeatures and filters & FilterFlags.GAUSSIAN.value:
-        img = noise_reduction_gaussian(img)
-        _, desc = sift.detectAndCompute(img, None)
-
-    if desc.shape[0] < nfeatures and filters & FilterFlags.SHARPERING.value:
-        img = reduce_sharpening(img)
-        _, desc = sift.detectAndCompute(img, None)
-
-    if desc.shape[0] < nfeatures and filters & FilterFlags.HIST_EQUALIZATION.value:
-        img = histogram_equalization(img)
-        _, desc = sift.detectAndCompute(img, None)
-
-    if desc.shape[0] < nfeatures and filters & FilterFlags.DENOISE.value:
-        img = noise_reduction(img)
-        _, desc = sift.detectAndCompute(img, None)
-
-    return desc, img_d.DescriptorType.SIFT
-
-
-def try_add_preprocess(img, detector, nfeatures):
-    logger.debug("Preprocess: histogram equalization")
-    enhanced_image = cv2.equalizeHist(img)
-    kps, desc = detector.detectAndCompute(enhanced_image, None)
-
-    blurred_image = enhanced_image
-    if desc.shape[0] < nfeatures:
-        logger.debug("Preprocess: gaussian blur")
-        kernel_size = 5
-        blurred_image = cv2.GaussianBlur(enhanced_image, (kernel_size, kernel_size), 0)
-        kps, desc = detector.detectAndCompute(blurred_image, None)
-
-    return desc
-
-
 # Brightness and Contrast Adjustment
 def brightness_contrast_adjust(image):
     alpha = 1.5  # Adjust as needed
@@ -174,3 +58,74 @@ def noise_reduction(image:np.ndarray):
 def resolution_enhancement(image, new_width, new_height):
     upscaled_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
     return upscaled_image
+
+filter_functions = {
+    FilterFlags.GAUSSIAN: noise_reduction_gaussian,
+    FilterFlags.SHARPERING: reduce_sharpening,
+    FilterFlags.HIST_EQUALIZATION: histogram_equalization,
+    FilterFlags.DENOISE: noise_reduction,
+}
+
+def compare_sift_descriprtors(desc1: np.ndarray, desc2: np.ndarray, match_percent=0.85) -> bool:
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(desc1, desc2, k=2)
+
+    good_matches = []
+    for m, n in matches:
+        if m.distance < match_percent * n.distance:
+            good_matches.append([m])
+
+    v_match = len(good_matches)/len(matches)
+
+    # print("Match persets: ", v_match,", Distanse: ", math_utils.euclidian_distance(desc1, desc2))
+
+    if v_match > match_percent:
+        return True
+    else:
+        return False
+    
+def compare_descriprtors(desc1: np.ndarray, desc2: np.ndarray, matcher, match_percent=0.85) -> bool:
+    matches = matcher.knnMatch(desc1, desc2, k=2)
+    good_matches = []
+    for m, n in matches:
+        if m.distance < match_percent * n.distance:
+            good_matches.append([m])
+
+    v_match = len(good_matches)/len(matches)
+
+    # print("Match persets: ", v_match,", Distanse: ", math_utils.euclidian_distance(desc1, desc2))
+
+    if v_match > match_percent:
+        return True
+    else:
+        return False
+
+def get_image_data_sift(path_to_img, nfeatures:int =NFEATURES, filters=0) -> Tuple[np.ndarray, img_d.DescriptorType]:
+
+    img = cv2.imread(path_to_img, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        logger.info("Can't open image: %s", path_to_img)
+        return np.empty([]), img_d.DescriptorType.SIFT
+
+    width = int(img.shape[1] * 1.5)
+    height = int(img.shape[0] * 1.5)
+    img = resolution_enhancement(img, width, height)
+
+    sift = cv2.SIFT_create(nfeatures=nfeatures, contrastThreshold=0.04, edgeThreshold=10)
+    _, desc = sift.detectAndCompute(img, None)
+
+    # Check filter flags and apply filters accordingly
+    for flag, func in filter_functions.items():
+        if desc.shape[0] < nfeatures and filters & flag.value:
+            img = func(img)
+            _, desc = sift.detectAndCompute(img, None)
+
+    return desc, img_d.DescriptorType.SIFT
+
+def get_FLANN_matcher():
+    # FLANN parameters
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+    search_params = dict(checks=50) # or pass empty dictionary
+
+    flann = cv2.FlannBasedMatcher(index_params, search_params)

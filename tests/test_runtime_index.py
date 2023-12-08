@@ -1,55 +1,50 @@
-import core.runtime_index as runtime_index
-import bot_general
+import pytest
+import core.runtime_index as ri
+import core.img_proccessing as imp
 import model.context as context
 import utils
-import core.sqlite_db_utils as sqlite_db_utils
+import cv2
 
-PATH_TO_IMGS = './grbrt_spb/photos/'
+PATH_TO_IMGS = 'tests/images/'
+NFEATURES = 800
 
-import random
+# setup test enviroment
+max_size = 20
+chat_id = -1
+img_list = utils.get_image_files( PATH_TO_IMGS )
+img_data = []
 
-def main():
+@pytest.fixture
+def runtime_index():
+    ri.add_runtime_index(chat_id, 0, max_size, NFEATURES)
+    rt_index = ri.get_runtime_index(chat_id)
 
-    nfeatures = 800
-    max_size = 20
-    chat_id = -1
-    chat_path = './tests/'
-    runtime_index.add_runtime_index(chat_id, 0, max_size, nfeatures)
-    sqlite_db_utils.create_index_table(chat_path)
-    sqlite_db_utils.create_image_table(chat_path)
+    for img_name in img_list:
+        desc, _ = imp.get_image_data_sift(image_path, NFEATURES)
+        id = rt_index.add_data_point( desc, img_name, -1 )
+        if :
+            img_data.append( (image_path, id, True) )
+        else:
+            img_data.append( (image_path, -1, False) )
 
-    prefix_img_path = PATH_TO_IMGS
-    list_imgs = utils.get_image_files( prefix_img_path )
-    rand_imgs_list = utils.get_random_images(list_imgs, 60)
+    return rt_index
 
-    saved_img_list = []
+@pytest.mark.parametrize("image_path, image_id, expected_res", img_data )
+def test_image_search_BF(image_path, image_id, expected_res, runtime_index):
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+    search_params = dict(checks=50) # or pass empty dictionary
+    matcher = cv2.FlannBasedMatcher(index_params, search_params)
 
-    for img_name in rand_imgs_list:
-        path_to_img = prefix_img_path + img_name
-        
-        ctx = context.Context(nfeatures, 128, max_size, chat_path, chat_id)
-        img_data = bot_general.get_image_data(path_to_img, nfeatures)
-        img_desc = img_data.descriptor
+    desc, _ = imp.get_image_data_sift(image_path, NFEATURES)
+    id_list = runtime_index.find_image(desc, matcher)
 
-        if img_desc.shape[0] < nfeatures:
-            continue
-        elif img_desc.shape[0] > nfeatures:
-            img_desc = img_desc[:nfeatures]
+    assert image_id in id_list == expected_res
 
-        saved_img_list.append(path_to_img)
-        bot_general.update_index( ctx, './', img_desc, img_name, -1 )
+@pytest.mark.parametrize("image_path, image_id, expected_res", img_data )
+def test_image_search_FLANN(image_path, image_id, expected_res, runtime_index):
+    matcher = cv2.BFMatcher()
+    desc, _ = imp.get_image_data_sift(image_path, NFEATURES)
+    id_list = runtime_index.find_image(desc, matcher)
 
-    path_to_img = saved_img_list[6]
-    res, img_desc = bot_general.find_image_in_indexes(path_to_img, chat_path, chat_id, nfeatures)
-    print(path_to_img, res)
-
-    path_to_img = saved_img_list[24]
-    res, img_desc = bot_general.find_image_in_indexes(path_to_img, chat_path, chat_id, nfeatures)
-    print(path_to_img, res)
-
-    path_to_img = saved_img_list[-3]
-    res, img_desc = bot_general.find_image_in_indexes(path_to_img, chat_path, chat_id, nfeatures)
-    print(path_to_img, res)
-
-if __name__ == "__main__":
-    main()
+    assert image_id in id_list == expected_res

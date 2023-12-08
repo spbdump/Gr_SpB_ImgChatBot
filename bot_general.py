@@ -2,7 +2,8 @@ import os
 import re
 import shutil
 
-from core.img_proccessing import compare_sift_descriprtors, get_image_data
+from core.img_proccessing import compare_sift_descriprtors, get_image_data_sift, \
+                                 compare_descriprtors, get_FLANN_matcher
 from core.HNSW_index import load_index, get_neighbors_desc_indexes, \
                        MIN_FEATURES
 
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 def update_DBPATH(path:str):
     update_PATH_TO_GENERAL_DB(path)
 
-def find_image_in_index(prefix_path, index_name, desc_name, q_desc, nfeatures:int =MIN_FEATURES):
+def find_image_in_index(prefix_path, index_name, desc_name, q_desc, matcher, nfeatures:int =MIN_FEATURES):
     descriptors_file = prefix_path + desc_name
     path_to_index = prefix_path + index_name
 
@@ -58,14 +59,14 @@ def find_image_in_index(prefix_path, index_name, desc_name, q_desc, nfeatures:in
     for idx, desc in zip(desc_idx_list, desc_list):
         in_desc = desc.reshape(nfeatures, desc_size)[:nfeatures_to_cmp]
         q_desc = q_desc[:nfeatures_to_cmp]
-        if compare_sift_descriprtors(q_desc, in_desc, 0.8) == True:
+        if compare_descriprtors(q_desc, in_desc, matcher, 0.8) == True:
             res_img_id_list.append( idx )
 
     return res_img_id_list
 
 def find_image_in_indexes(path_to_img, chat_path, chat_id, nfeatures:int =MIN_FEATURES):
-    img_data = get_image_data(path_to_img, nfeatures)
-    q_desc = img_data.descriptor
+    img_data, _ = get_image_data_sift(path_to_img, nfeatures)
+    q_desc = img_data
 
     index_triplets = get_index_triplets(chat_path)
     if index_triplets == None:
@@ -76,16 +77,17 @@ def find_image_in_indexes(path_to_img, chat_path, chat_id, nfeatures:int =MIN_FE
         logger.error("Wrong shape descriptor")
         return [], q_desc
 
+    matcher = get_FLANN_matcher()
     res_ids = []
     for index_id, index_name, desc_name in index_triplets:
         img_id_list = find_image_in_index(chat_path, index_name,
-                                          desc_name, q_desc, nfeatures)
+                                          desc_name, q_desc, matcher, nfeatures)
         
         if len(img_id_list):
             res_ids.append((index_id, img_id_list))
         
     runtime_index = rni.get_runtime_index(chat_id)
-    rt_img_id_list = runtime_index.find_image(q_desc)
+    rt_img_id_list = runtime_index.find_image(q_desc, matcher)
     if len(rt_img_id_list):
         res_ids.append((runtime_index.RUNTIME_INDEX_ID, rt_img_id_list))
 

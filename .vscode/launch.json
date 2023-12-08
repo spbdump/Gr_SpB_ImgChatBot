@@ -8,9 +8,13 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/bot.py",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "env": {
+                "BOT_TOKEN": "6298162344:AAGWjhEyv6QMw1nVmbQLBGp2qplpyxdM51M",
+                "VOLUME_PATH": "./bot/data/",
+            },
         },
         {
             "name": "Python: Current Test File",
@@ -34,7 +38,9 @@
             ],
             "cwd": "${workspaceFolder}",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}"
+                "PYTHONPATH": "${workspaceFolder}",
+                "BOT_TOKEN": "6298162344:AAGWjhEyv6QMw1nVmbQLBGp2qplpyxdM51M",
+                "VOLUME_PATH": "./bot/data/",
             },
             "console": "integratedTerminal",
             "stopOnEntry": false,

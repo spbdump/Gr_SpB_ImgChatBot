@@ -34,12 +34,6 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
     
     chat_path = VOLUME_PATH + ctx.chat_path
     nfeatures = ctx.nfeatures
-    #c_chat_id = ctx.chat_id
-    # check if this message is a reply or forward from the same chat 
-    # if m_chat_id == c_chat_id:
-    #     logger.info("This message is just a reply or forward")
-    #     return
-
     ef_message = update.effective_message
     photo_list = ef_message.photo
     # Get the last item in the list (the largest photo size)
@@ -62,7 +56,8 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
 
     if img_desc.shape[0] < nfeatures:
         logger.info("Image has %d features, should be %d", img_desc.shape[0], nfeatures)
-        await ef_message.reply_text(text="Can't calculate enough features. Image wasn't indexed!\n")
+        logger.error("Can't calculate enough features. Image wasn't indexed!\n")
+        # await ef_message.reply_text(text="Can't calculate enough features. Image wasn't indexed!\n")
         return
 
     if len(res) == 0:

@@ -34,13 +34,13 @@ class RuntimeIndex(Index):
         neighbors_data = self.index.knnQuery(query_data.reshape(-1), k=self.k)
         return neighbors_data[0]
     
-    def find_image(self, q_desc):
+    def find_image(self, q_desc, matcher, match_percent = 0.7):
         res_img_id_list = []
         desc_idx_list = self.knn_query(q_desc)
         for idx in desc_idx_list:
             desc = self.index_data[idx]
             in_desc = desc.reshape(self.nfeatures, self.desc_size)[:self.nfeatures]
-            if imp.compare_sift_descriprtors(q_desc, in_desc, 0.8) == True:
+            if imp.compare_descriprtors(q_desc, in_desc, matcher, match_percent) == True:
                 res_img_id_list.append( idx )
         return res_img_id_list
 
@@ -52,6 +52,8 @@ class RuntimeIndex(Index):
         
         # pos in img_data shoud be equal id
         self.img_data.append( ImageData(self.RUNTIME_INDEX_ID, id, t_msg_id, img_name) )
+
+        return id
 
         
     def is_fullfilled(self):

@@ -1,0 +1,6 @@
+FROM imgbotbase:v1
+
+RUN apt-get update
+WORKDIR /bot
+
+EXPOSE 5555

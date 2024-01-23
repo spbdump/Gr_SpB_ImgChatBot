@@ -1,5 +1,5 @@
 
-import bot_general
+import bot_impl
 import utils
 
 import nmslib
@@ -31,7 +31,7 @@ def main():
     id = 0
     for img_name in rand_imgs_list:
         path_to_img = prefix_img_path + img_name
-        img_data = bot_general.get_image_data(path_to_img, 800)
+        img_data = bot_impl.get_image_data(path_to_img, 800)
         img_desc = img_data.descriptor
         
         if img_desc.shape[0] < 800:

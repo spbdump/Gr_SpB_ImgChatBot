@@ -11,7 +11,7 @@ import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-import bot_general
+import bot_impl
 import random_name
 
 
@@ -20,13 +20,13 @@ VOLUME_PATH = ""
 def update_VOLUME_PATH(path):
     global VOLUME_PATH
     VOLUME_PATH = path
-    bot_general.update_DBPATH(path)
+    bot_impl.update_DBPATH(path)
 
 async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     chat = update.effective_chat
     m_chat_id = chat.id
-    ctx = bot_general.get_chat_ctx(m_chat_id)
+    ctx = bot_impl.get_chat_ctx(m_chat_id)
 
     if ctx == None:
         logger.error("Bad state: can't get context for chat_id", m_chat_id)
@@ -42,7 +42,7 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
     file_id = photo.file_id
 
     date_time = ef_message.date
-    img_id = bot_general.generate_next_img_id( chat_path )
+    img_id = bot_impl.generate_next_img_id( chat_path )
 
     # should has frormat "photo_{img_id}@{date}-{time}.jpg"
     img_name = f'photo_{img_id}@{date_time}.jpg'
@@ -52,7 +52,7 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
     file = await context.bot.get_file(file_id)
     await file.download_to_drive(path_to_img)
 
-    res, img_desc = bot_general.find_image_in_indexes(path_to_img, chat_path, m_chat_id, nfeatures)
+    res, img_desc = bot_impl.find_image_in_indexes(path_to_img, chat_path, m_chat_id, nfeatures)
 
     if img_desc.shape[0] < nfeatures:
         logger.info("Image has %d features, should be %d", img_desc.shape[0], nfeatures)
@@ -62,7 +62,7 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
 
     if len(res) == 0:
         message_id = ef_message.id
-        bot_general.update_index( ctx, chat_path, img_desc, img_name, message_id )
+        bot_impl.update_index( ctx, chat_path, img_desc, img_name, message_id )
         logging.info("New image was saved to database")
         #await ef_message.reply_text(text="Image was indexed!\n")
         return
@@ -70,7 +70,7 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
     if len(res) == 1:
         index_id, img_id = res[0]
         img_id = img_id[0]
-        message_id = bot_general.get_message_id(chat_path, m_chat_id, img_id, index_id)
+        message_id = bot_impl.get_message_id(chat_path, m_chat_id, img_id, index_id)
 
         # add link to existed post
         await ef_message.reply_text(text="Предупреждение!\nYou got -rep!")
@@ -147,22 +147,22 @@ async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             logger.info("%s added the bot to the group %s", cause_name, chat.title)
             context.bot_data.setdefault("group_ids", set()).add(chat.id)
 
-            bot_general.on_add_bot(chat.id, VOLUME_PATH, random_name.get_random_name())
+            bot_impl.on_add_bot(chat.id, VOLUME_PATH, random_name.get_random_name())
 
         elif was_member and not is_member:
             logger.info("%s removed the bot from the group %s", cause_name, chat.title)
             context.bot_data.setdefault("group_ids", set()).discard(chat.id)
 
-            bot_general.on_remove_bot(chat.id, VOLUME_PATH)
+            bot_impl.on_remove_bot(chat.id, VOLUME_PATH)
 
     elif not was_member and is_member:
         logger.info("%s added the bot to the channel %s", cause_name, chat.title)
         context.bot_data.setdefault("channel_ids", set()).add(chat.id)
 
-        bot_general.on_add_bot(chat.id, VOLUME_PATH, random_name.get_random_name())
+        bot_impl.on_add_bot(chat.id, VOLUME_PATH, random_name.get_random_name())
 
     elif was_member and not is_member:
         logger.info("%s removed the bot from the channel %s", cause_name, chat.title)
         context.bot_data.setdefault("channel_ids", set()).discard(chat.id)
 
-        bot_general.on_remove_bot(chat.id, VOLUME_PATH)
+        bot_impl.on_remove_bot(chat.id, VOLUME_PATH)

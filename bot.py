@@ -11,7 +11,7 @@ from telegram.ext import (
 import commands
 import handlers
 import core.runtime_index as rn_index
-import bot_general as bg
+import bot_impl as bg
 
 import logging
 
@@ -27,7 +27,7 @@ def main():
     if BOT_TOKEN == None:
         logger.error("Can't read bot token env")
         return
-    
+
     if v_path != None:
         handlers.update_VOLUME_PATH(v_path)
 

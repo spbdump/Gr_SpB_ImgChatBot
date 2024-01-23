@@ -1,4 +1,4 @@
-import bot_general
+import bot_impl
 import model.context as context
 
 import utils
@@ -19,7 +19,7 @@ def main():
         path_to_img = prefix_img_path + img_name
         
         ctx = context.Context(nfeatures, 128, 20, chat_path, -1)
-        img_data = bot_general.get_image_data(path_to_img, nfeatures)
+        img_data = bot_impl.get_image_data(path_to_img, nfeatures)
         img_desc = img_data.descriptor
 
         if img_desc.shape[0] < nfeatures:

@@ -1,4 +1,4 @@
-import bot_general
+import bot_impl
 
 
 def main():
@@ -12,7 +12,7 @@ def main():
 
     for img_name in img_list:
         path_to_img = prefix_img_path + img_name
-        res, img_desc = bot_general.find_image_in_indexes(path_to_img, path_prefix, nfeatures)
+        res, img_desc = bot_impl.find_image_in_indexes(path_to_img, path_prefix, nfeatures)
         print( res )
 
 if __name__ == "__main__":

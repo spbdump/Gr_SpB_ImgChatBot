@@ -59,7 +59,7 @@ def find_image_in_index(prefix_path, index_name, desc_name, q_desc, matcher, nfe
     for idx, desc in zip(desc_idx_list, desc_list):
         in_desc = desc.reshape(nfeatures, desc_size)[:nfeatures_to_cmp]
         q_desc = q_desc[:nfeatures_to_cmp]
-        if compare_descriprtors(q_desc, in_desc, matcher, 0.8) == True:
+        if compare_descriprtors(q_desc, in_desc, matcher, rni.MATCH_PERCENT) == True:
             res_img_id_list.append( idx )
 
     return res_img_id_list

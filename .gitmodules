@@ -1,7 +1,7 @@
 [submodule "opencv-python"]
 	path = opencv-python
 	url = /opencv-python/
-
+	
 [submodule "core"]
 	path = core
 	url = https://github.com/catogrammer/core_img_recognition.git

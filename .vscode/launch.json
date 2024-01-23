@@ -4,17 +4,18 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
-            "name": "Python: Debug bot.py",
+            "name": "Python: bot.py File",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/bot.py",
+            "program": "bot.py",
             "console": "integratedTerminal",
             "justMyCode": true,
+            "python": "/usr/local/bin/python3",
             "env": {
-                "BOT_TOKEN": "6298162344:AAGWjhEyv6QMw1nVmbQLBGp2qplpyxdM51M",
-                "VOLUME_PATH": "./bot/data/",
-            },
+                "PYTHONPATH": "${PYTHONPATH}:${workspaceFolder}",
+            }
         },
         {
             "name": "Python: Current Test File",

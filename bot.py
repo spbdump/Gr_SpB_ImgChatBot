@@ -36,8 +36,11 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("tits", commands.tits))
+    app.add_handler(CommandHandler("ban", commands.ban))
+
     app.add_handler(MessageHandler(filters.PHOTO, handlers.receive_tits_or_cats_v2))
     app.add_handler(ChatMemberHandler(handlers.track_chats, ChatMemberHandler.MY_CHAT_MEMBER))
+    app.add_handler(MessageHandler(filters.ALL, handlers.track_stickers))
 
     app.run_polling()
 

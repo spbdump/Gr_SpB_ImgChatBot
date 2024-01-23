@@ -166,3 +166,12 @@ async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         context.bot_data.setdefault("channel_ids", set()).discard(chat.id)
 
         bot_impl.on_remove_bot(chat.id, VOLUME_PATH)
+
+async def track_stickers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    black_list = [ 'GoblinWorld_LepaPack' ]
+    if update.effective_message.sticker:
+        if update.effective_message.sticker.set_name in black_list:
+            try:
+                await update.effective_message.delete()
+            except:
+                print("your message deleted")

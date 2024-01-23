@@ -2,6 +2,7 @@ __pycache__
 .venv*
 test_images
 */photos/photo_*
+bot/data/*
 grbrt_spb
 tmp_photos
 new_photos

@@ -5,7 +5,9 @@
         "reportOptionalSubscript":"information",
         "reportMissingImports": "information",
     },
-    "python.analysis.extraPaths": [".venv/lib/python3.10/site-packages/telegram"],
+    "python.analysis.extraPaths": [
+        "/usr/local/lib/python3.10/site-packages/telegram",
+    ],
     "cmake.cmakePath": "${userHome}/workdir/tools/cmake-3.27.0-rc4-linux-x86_64/bin/cmake",
     "cmake.configureOnOpen": false,
     "cmake.sourceDirectory": "/home/catogrammer/workdir/Gr_SpB_ImgChatBot/opencv-python/opencv/3rdparty/ittnotify",

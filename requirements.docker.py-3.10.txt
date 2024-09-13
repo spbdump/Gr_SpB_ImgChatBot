@@ -16,8 +16,6 @@ httpx==0.24.1
 idna==3.4
 iniconfig==2.0.0
 line-profiler==4.1.1
-nmslib==2.1.1
-numpy==1.25.2
 packaging==23.1
 pluggy==1.2.0
 psutil==5.9.5

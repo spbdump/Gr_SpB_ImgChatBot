@@ -1,0 +1,76 @@
+FROM python:3.10-slim-bookworm as builder
+
+RUN apt update
+
+# install build tools
+RUN apt install -y cmake ccache \
+    build-essential gcc g++
+
+# open-cv dependencies
+RUN apt install -y \
+    python3-dev python3-numpy
+RUN apt install -y libpng-dev \
+    libjpeg-dev \
+    libopenexr-dev \
+    libtiff-dev \
+    libwebp-dev
+RUN apt install -y libtbb-dev libeigen3-dev
+
+ENV ENABLE_TBB=" -D WITH_TBB=ON"
+ENV ENABLE_EIGEN=" -D WITH_EIGEN=ON"
+
+RUN apt install -y git
+RUN git clone --recursive https://github.com/opencv/opencv.git
+# endable contrib modules
+ENV ENABLE_NONFREE=" -D OPENCV_ENABLE_NONFREE=ON"
+ENV DISABLE_TESTS ="-D BUILD_TESTS=OFF"
+ENV CMAKE_ARGS="${ENABLE_NONFREE}${ENABLE_TBB}${ENABLE_EIGEN}${DISABLE_TESTS}"
+
+RUN pip install numpy
+
+#setup build type and path
+#-D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local
+
+# build opencv
+RUN  mkdir -p /opencv/build
+WORKDIR /opencv/build
+RUN cmake "${CMAKE_ARGS}" ../
+RUN make -j8 && make install
+
+# # hnsw lib setup
+# ENV HNSWLIB_NO_NATIVE=1
+
+RUN git clone https://github.com/nmslib/hnswlib.git
+WORKDIR /hnswlib
+RUN pip install .
+
+
+FROM python:3.10-slim-bookworm
+
+RUN apt update
+RUN apt install -y libpng-dev \
+    libjpeg-dev \
+    libopenexr-dev \
+    libtiff-dev \
+    libwebp-dev
+RUN apt install -y libtbb-dev libeigen3-dev
+
+COPY --from=builder /usr/local/bin  /usr/local/bin
+COPY --from=builder /usr/local/lib  /usr/local/lib
+
+# RUN  mkdir -p /usr/local/lib/cmake/opencv4
+RUN  mkdir -p /usr/local/include/opencv4
+RUN  mkdir -p /usr/local/share/opencv4
+
+# COPY --from=builder /usr/local/lib/cmake/opencv4  /usr/local/lib/cmake/opencv4
+COPY --from=builder /usr/local/include/opencv4  /usr/local/include/opencv4
+COPY --from=builder /usr/local/share/opencv4  /usr/local/share/opencv4
+
+
+
+# By default OpenCV will be installed to the /usr/local directory, all files will be copied to following locations:
+#     /usr/local/bin - executable files
+#     /usr/local/lib - libraries (.so)
+#     /usr/local/cmake/opencv4 - cmake package
+#     /usr/local/include/opencv4 - headers
+#     /usr/local/share/opencv4 - other files (e.g. trained cascades in XML format)

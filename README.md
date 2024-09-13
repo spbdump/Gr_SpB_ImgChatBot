@@ -34,3 +34,24 @@ TODO: switch to FLAAN computor!!
 Helpful techniques:
     Index Pruning
     Cluster-Based Indexing
+
+
+# Steps
+1. build docker manylinux with open-cv
+2. copy build from builder to my image
+
+
+# build image
+docker build -t opencv-test-image -f .\Dockerfile.opencv.builder .
+# run containter
+docker run -it --name test-py-opencv opencv-test-image bash
+# go to container
+docker ps
+docker exec -it <CONTAINER_ID_OR_NAME> bash
+
+
+
+docker build -t deb12-py-opencv -f .\Dockerfile.local.dev .
+docker build -t spb-img-bot -f .\Dockerfile.dev .
+docker run --env-file .env -it --name spb-img-bot spb-img-bot bash
+

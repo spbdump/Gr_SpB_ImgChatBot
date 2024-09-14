@@ -1,28 +1,17 @@
-FROM python:3.10-alpine
+FROM deb12-py-opencv:latest
 
-# install cmake and compiler gcc and headers
-RUN apk --no-cache add cmake ccache build-base libc-dev musl-dev linux-headers g++
+RUN apt update
+RUN apt install sqlite3
 
-#install requirements
-COPY requirements.docker.txt requirements.txt
+#install other requirements
+COPY requirements.docker.py-3.10.txt requirements.txt
 RUN pip install -r requirements.txt
 
-# build opencv
-# endable contrib modules
-RUN apk --no-cache add git
-RUN git clone --recursive https://github.com/skvark/opencv-python.git
-
-ENV CMAKE_ARGS="-DOPENCV_ENABLE_NONFREE=ON"
-RUN python /opencv-python/setup.py bdist_wheel
-RUN pip install /opencv-python/dist/opencv_python-4.8.0.76-cp310-cp310-linux_x86_64.whl
-
-WORKDIR /bot
+WORKDIR /bot/sources
 
 COPY bot.py handlers.py commands.py \
-     context.py HNSW_index.py index.py \
-     file_descriptor_utils.py image_d.py \
-     img_proccessing.py sqlite_db_utils.py \
-     random_name.py bot_general.py img_data.py \ 
-     runtime_index.py     /bot/sources/
+     random_name.py bot_impl.py ./
+COPY core/ core/
+COPY model/ model/
 
 CMD [ "python", "/bot/sources/bot.py" ]

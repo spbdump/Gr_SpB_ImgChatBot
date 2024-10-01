@@ -1,0 +1,16 @@
+FROM deb12-py-opencv:latest
+
+RUN apt update
+RUN pip install pytest
+
+COPY /tests /tests
+COPY /core /core
+COPY /model /model
+
+COPY bot.py bot.py
+COPY bot_impl.py bot_impl.py
+COPY sqlite_db_utils.py sqlite_db_utils.py
+
+COPY pytest.ini pytest.ini
+
+CMD ["pytest", "-v"]

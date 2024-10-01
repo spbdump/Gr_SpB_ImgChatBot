@@ -11,4 +11,9 @@
     "cmake.cmakePath": "${userHome}/workdir/tools/cmake-3.27.0-rc4-linux-x86_64/bin/cmake",
     "cmake.configureOnOpen": false,
     "cmake.sourceDirectory": "/home/catogrammer/workdir/Gr_SpB_ImgChatBot/opencv-python/opencv/3rdparty/ittnotify",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
 }

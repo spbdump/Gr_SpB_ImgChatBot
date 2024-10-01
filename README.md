@@ -55,3 +55,5 @@ docker build -t deb12-py-opencv -f .\Dockerfile.local.dev .
 docker build -t spb-img-bot -f .\Dockerfile.dev .
 docker run --env-file .env -it --name spb-img-bot spb-img-bot bash
 
+
+PYTHONPATH=. pytest

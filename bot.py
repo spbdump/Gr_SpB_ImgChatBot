@@ -10,8 +10,7 @@ from telegram.ext import (
 
 import commands
 import handlers
-import core.runtime_index as rn_index
-import bot_impl as bg
+import bot_impl as bi
 
 import logging
 
@@ -31,8 +30,7 @@ def main():
     if v_path != None:
         handlers.update_VOLUME_PATH(v_path)
 
-    bg.create_general_db()
-    rn_index.init_runtime_chat_indexes()
+    bi.init()
 
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("tits", commands.tits))

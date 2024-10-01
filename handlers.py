@@ -31,7 +31,7 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
     if ctx == None:
         logger.error("Bad state: can't get context for chat_id", m_chat_id)
         return
-    
+
     chat_path = VOLUME_PATH + ctx.chat_path
     nfeatures = ctx.nfeatures
     ef_message = update.effective_message
@@ -62,7 +62,7 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
 
     if len(res) == 0:
         message_id = ef_message.id
-        bot_impl.update_index( ctx, chat_path, img_desc, img_name, message_id )
+        bot_impl.update_index( ctx, img_desc, img_name, message_id )
         logging.info("New image was saved to database")
         #await ef_message.reply_text(text="Image was indexed!\n")
         return
@@ -73,10 +73,10 @@ async def receive_tits_or_cats_v2(update: Update, context: ContextTypes.DEFAULT_
         message_id = bot_impl.get_message_id(chat_path, m_chat_id, img_id, index_id)
 
         # add link to existed post
-        await ef_message.reply_text(text="Предупреждение!\nYou got -rep!")
+        await ef_message.reply_text(text="Предупреждение!") # n\nYou got -rep!
 
-        if message_id != None:
-            await context.bot.send_message(chat_id=m_chat_id, text="Исходный пост", reply_to_message_id=message_id)
+        # if message_id != None:
+        #     await context.bot.send_message(chat_id=m_chat_id, text="Исходный пост", reply_to_message_id=message_id)
 
         return
 

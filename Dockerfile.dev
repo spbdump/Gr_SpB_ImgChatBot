@@ -7,3 +7,4 @@ RUN apt install sqlite3
 COPY requirements.docker.py-3.10.txt requirements.txt
 RUN pip install -r requirements.txt
 RUN pip install pytest
+RUN pip install pytest-repeat

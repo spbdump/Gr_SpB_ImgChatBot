@@ -17,3 +17,4 @@ descriptors
 .exp.venv3.10
 .ipynb_checkpoints
 tests/images/
+tests/data

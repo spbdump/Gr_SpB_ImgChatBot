@@ -42,8 +42,6 @@ def test_run_app():
     # add images to index
     count_for_rn_index = runtime_index_size - 1 # SHOULD BE LESS THAT runtime_index_size
     for image_name in list_names[:count_for_rn_index]:
-        # random_index = random.randint(0, len(list_names) - 1)
-        # random_image_name = list_names[random_index]
         path_to_image =  os.path.join( path_to_images, image_name )
 
         image = read_image(path_to_image)
@@ -79,12 +77,3 @@ def test_run_app():
     assert len(res) != 0, "Can't find input image in indexes"
     assert res[0][0] != random_index, "Wrong image index"
 
-
-
-    # path_to_img_not_in_index = ""
-    # res, img_desc = bi.find_image_in_indexes(path_to_img_not_in_index, ctx.chat_path, ctx.chat_id, ctx.nfeatures)
-    # assert len(res) != 0, "Image was found in indexes"
-
-    # # search inmemory indexes
-    # res, img_desc = bi.find_image_in_indexes(path_to_img_in_index, ctx.chat_path, ctx.chat_id, ctx.nfeatures)
-    # assert len(res) == 0

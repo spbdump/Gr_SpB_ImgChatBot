@@ -118,7 +118,7 @@ def save_runtime_img_data(index_id:int, start_id:int, data, prefix_path:str, nam
     conn = sqlite3.connect(path_to_db)
     cursor = conn.cursor()
     # Insert image data into the table
-    for img_data in data:
+    for img_idx, img_data in enumerate(data):
         insert_query = '''
             INSERT INTO image_data 
             (index_id, img_id, t_msg_id, img_name, created_at) 
@@ -126,7 +126,7 @@ def save_runtime_img_data(index_id:int, start_id:int, data, prefix_path:str, nam
         '''
         cursor.execute(insert_query, (
             index_id,
-            start_id + img_data.img_id,
+            start_id + img_idx,
             img_data.t_msg_id,
             img_data.img_name,
             str(datetime.now())

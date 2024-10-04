@@ -11,7 +11,7 @@ import shutil
 def test_run_app():
 
     chat_id = 123
-    runtime_index_size = 5
+    runtime_index_size = 4
     chat_path = "./data/test_chat"
     path = os.path.dirname(__file__)
     path_to_chat_folder = os.path.join(path, chat_path)
@@ -58,10 +58,10 @@ def test_run_app():
 
     # find image in runtime index
     res, _ = bi.find_image_in_indexes(path_to_random_image, ctx.chat_path, ctx.chat_id, ctx.nfeatures)
+    print( f'image id {res}')
     assert len(res) != 0, "Can't find input image in indexes"
     assert res[0][0] != random_index, "Wrong image index"
 
-    print( f'image id {res}')
 
     # add images to index
     for image_name in list_names[count_for_rn_index:]:
@@ -75,10 +75,10 @@ def test_run_app():
 
     # try find same image wich is should be in saved index already
     res, _ = bi.find_image_in_indexes(path_to_random_image, ctx.chat_path, ctx.chat_id, ctx.nfeatures)
+    print( f'image id {res}')
     assert len(res) != 0, "Can't find input image in indexes"
     assert res[0][0] != random_index, "Wrong image index"
 
-    print( f'image id {res}')
 
 
     # path_to_img_not_in_index = ""

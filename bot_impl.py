@@ -124,17 +124,16 @@ def update_index(ctx: Context, desc, img_name:str, t_msg_id:int):
         if last_index_data == None:
             last_index_data = Index(0, 0, ctx.max_size, ctx.nfeatures, ctx.desc_size)
 
-        img_data_to_store = index.img_data
-        start_img_id = last_index_data.index_size
+        if last_index_data.max_size != last_index_data.index_size:
+            start_img_id = last_index_data.index_size
+        else:
+            start_img_id = 0
 
         if index.is_fullfilled():
             index.dump(last_index_data, ctx.chat_path)
 
-            part_size = last_index_data.index_size + index.max_runtime_size - last_index_data.max_size
-            img_data_to_store = img_data_to_store[part_size:]
-
             update_index_record(index, ctx.chat_path)
-            save_runtime_img_data(index.index_id, start_img_id, img_data_to_store, ctx.chat_path)
+            save_runtime_img_data(index.index_id, start_img_id, index._dumped_img_data_, ctx.chat_path)
     else:
         return False
 
